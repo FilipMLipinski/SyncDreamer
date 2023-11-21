@@ -695,7 +695,7 @@ class SyncDDIMSampler:
 
         return x_target_noisy, intermediates
     
-    def more_like_clip(self, input_info, x_target_noisy):
+    def more_like_clip(self, input_info, x_target_noisy, batch_view_num=1):
         print("I am in more_like_clip")
         x_input = input_info['x']
         print("shape of the x_input image" + str(x_input.shape))
