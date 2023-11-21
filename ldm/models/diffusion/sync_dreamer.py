@@ -16,6 +16,12 @@ from ldm.modules.diffusionmodules.util import make_ddim_timesteps, timestep_embe
 from ldm.modules.encoders.modules import FrozenCLIPImageEmbedder
 from ldm.util import instantiate_from_config
 
+from torch.optim import Adam
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+from PIL import Image
+from clip import clip
+from torch.nn.functional import cosine_similarity
+
 def disabled_train(self, mode=True):
     """Overwrite model.train with this function to make sure train/eval mode
     does not change anymore."""
@@ -548,6 +554,9 @@ class SyncDDIMSampler:
         self._make_schedule(ddim_num_steps, ddim_discretize, ddim_eta)
         self.eta = ddim_eta
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.clip_model, preprocess = clip.load("ViT-B/32", device=device)
+
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
         ddim_timesteps_ = torch.from_numpy(self.ddim_timesteps.astype(np.int64)) # DT
@@ -659,6 +668,61 @@ class SyncDDIMSampler:
             index = total_steps - i - 1 # index in ddim state
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
+            if index % log_every_t == 0 or index == total_steps - 1:
+                intermediates['x_inter'].append(x_target_noisy)
+
+        return x_target_noisy, intermediates
+    
+    def more_like_clip(self, input_info, x_target_noisy):
+        x_input = input_info['x']
+
+        x_target_noisy.requires_grad_(True)
+
+        optimizer = Adam([x_target_noisy], lr=1e-2)
+
+        for i in range(10):
+            opimizer.zero_grad()
+
+            x_input_embed = self.clip_model.encode_image(x_input)
+            x_target_noisy_embed = self.clip_model.encode_image(x_target_noisy)
+
+            loss = -cosine_similarity(x_input_embed, x_target_noisy_embed).mean()
+            loss.backward()
+
+            optimizer.step()
+        
+        return x_target_noisy
+    
+    @torch.no_grad()
+    def sample_symmetric(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
+        """
+        @param input_info:      x, elevation
+        @param clip_embed:      B,M,768
+        @param unconditional_scale:
+        @param log_every_t:
+        @param batch_view_num:
+        @return:
+        """
+        print(f"unconditional scale {unconditional_scale:.1f}")
+        C, H, W = 4, self.latent_size, self.latent_size
+        B = clip_embed.shape[0]
+        N = self.model.view_num
+        device = self.model.device
+        x_target_noisy = torch.randn([B, N, C, H, W], device=device)
+
+        timesteps = self.ddim_timesteps
+        intermediates = {'x_inter': []}
+        time_range = np.flip(timesteps)
+        total_steps = timesteps.shape[0]
+
+        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
+        for i, step in enumerate(iterator):
+            index = total_steps - i - 1 # index in ddim state
+            time_steps = torch.full((B,), step, device=device, dtype=torch.long)
+            x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
+    
+            x_target_noisy = self.more_like_clip(input_info, x_target_noisy)
+
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
 
