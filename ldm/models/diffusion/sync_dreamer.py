@@ -696,14 +696,17 @@ class SyncDDIMSampler:
         return x_target_noisy, intermediates
     
     def more_like_clip(self, input_info, x_target_noisy):
+        print("I am in more_like_clip")
         x_input = input_info['x']
+        print("shape of the x_input image" + str(x_input.shape))
+        print("shape of the x_target_noisy tensor" + str(x_target_noisy.shape))
 
         x_target_noisy.requires_grad_(True)
 
         optimizer = Adam([x_target_noisy], lr=1e-2)
 
         for i in range(10):
-            opimizer.zero_grad()
+            optimizer.zero_grad()
 
             x_input_embed = self.clip_model.encode_image(x_input)
             x_target_noisy_embed = self.clip_model.encode_image(x_target_noisy)
@@ -743,7 +746,7 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
     
-            x_target_noisy = self.more_like_clip(input_info, x_target_noisy)
+            x_target_noisy = self.more_like_clip(x_target_noisy, input_info, batch_view_num=batch_view_num)
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
