@@ -499,6 +499,28 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             return x_sample, inter_results
         else:
             return x_sample
+        
+    def sample_symmetric(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
+        _, clip_embed, input_info = self.prepare(batch)
+        x_sample, inter = sampler.sample_symmetric(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
+
+        N = x_sample.shape[1]
+        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        if return_inter_results:
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+            inter = torch.stack(inter['x_inter'], 2) # # B,N,T,C,H,W
+            B,N,T,C,H,W = inter.shape
+            inter_results = []
+            for ni in tqdm(range(0, N, inter_view_interval)):
+                inter_results_ = []
+                for ti in range(T):
+                    inter_results_.append(self.decode_first_stage(inter[:, ni, ti]))
+                inter_results.append(torch.stack(inter_results_, 1)) # B,T,3,H,W
+            inter_results = torch.stack(inter_results,1) # B,N,T,3,H,W
+            return x_sample, inter_results
+        else:
+            return x_sample
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)
