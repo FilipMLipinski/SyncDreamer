@@ -603,18 +603,19 @@ class SyncDDIMSampler:
         if not is_step0:
             
             for b in range(B):
-                anchor = random.randint(0, N-1)
-                with torch.no_grad():
-                    reference_embed = self.clip_model.encode_image(x_target_noisy[b, anchor, :3])
+                # anchor = random.randint(0, N-1)
+                # with torch.no_grad():
+                #     reference_embed = self.clip_model.encode_image(x_target_noisy[b, anchor, :3])
                 for n in range(N):
-                    if n!=anchor:
-                        optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
-                        for i in range(10):
-                            optimizer.zero_grad()
-                            prevn_embed = self.clip_model.encode_image(x_prev[:, n, :3])
-                            loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
-                            loss.backward()
-                            optimizer.step()
+                    # if n!=anchor:
+                    #     optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
+                    #     for i in range(10):
+                    #         optimizer.zero_grad()
+                    #         prevn_embed = self.clip_model.encode_image(x_prev[:, n, :3])
+                    #         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
+                    #         loss.backward()
+                    #         optimizer.step()
+                    x_prev[b, n, 20, 20] = 0.0
         return x_prev
 
     @torch.no_grad()
