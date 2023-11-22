@@ -615,8 +615,8 @@ class SyncDDIMSampler:
                     #         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                     #         loss.backward()
                     #         optimizer.step()
-                    for i in range(50,100):
-                        for j in range(50, 100):
+                    for i in range(10,15):
+                        for j in range(10, 15):
                             for k in range(3):
                                 x_prev[b, n, k, i, j] = 0.0
         return x_prev
