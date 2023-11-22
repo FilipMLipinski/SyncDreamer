@@ -21,6 +21,7 @@ from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normal
 from PIL import Image
 from clip import clip
 from torch.nn.functional import cosine_similarity
+import random
 
 def disabled_train(self, mode=True):
     """Overwrite model.train with this function to make sure train/eval mode
@@ -124,7 +125,6 @@ class UNetWrapper(nn.Module):
         s, s_uc = self.diffusion_model(x_, t_, clip_embed_, source_dict=v_).chunk(2)
         s = s_uc + unconditional_scale * (s - s_uc)
         return s
-
 
 class SpatialVolumeNet(nn.Module):
     def __init__(self, time_dim, view_dim, view_num,
@@ -499,28 +499,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             return x_sample, inter_results
         else:
             return x_sample
-        
-    def sample_symmetric(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
-        _, clip_embed, input_info = self.prepare(batch)
-        x_sample, inter = sampler.sample_symmetric(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
-
-        N = x_sample.shape[1]
-        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
-        if return_inter_results:
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            inter = torch.stack(inter['x_inter'], 2) # # B,N,T,C,H,W
-            B,N,T,C,H,W = inter.shape
-            inter_results = []
-            for ni in tqdm(range(0, N, inter_view_interval)):
-                inter_results_ = []
-                for ti in range(T):
-                    inter_results_.append(self.decode_first_stage(inter[:, ni, ti]))
-                inter_results.append(torch.stack(inter_results_, 1)) # B,T,3,H,W
-            inter_results = torch.stack(inter_results,1) # B,N,T,3,H,W
-            return x_sample, inter_results
-        else:
-            return x_sample
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)
@@ -617,9 +595,24 @@ class SyncDDIMSampler:
         pred_x0 = (x_target_noisy - sqrt_one_minus_at * noise_pred) / a_t.sqrt()
         dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt
+        # if not is_step0:
+        #     noise = sigma_t * torch.randn_like(x_target_noisy)
+        #     x_prev = x_prev + noise
+        # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
         if not is_step0:
-            noise = sigma_t * torch.randn_like(x_target_noisy)
-            x_prev = x_prev + noise
+            anchor = random.randint(0, N-1)
+            with torch.no_grad():
+                reference_embed = self.clip_model.encode_image(x_target_noisy[:, anchor, :3])
+            for b in range(B):
+                for n in range(N):
+                    if n!=anchor:
+                        optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
+                        for i in range(10):
+                            optimizer.zero_grad()
+                            prevn_embed = model.encode_image(x_prev[:, n, :3])
+                            loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
+                            loss.backward()
+                            optimizer.step()
         return x_prev
 
     @torch.no_grad()
@@ -690,64 +683,6 @@ class SyncDDIMSampler:
             index = total_steps - i - 1 # index in ddim state
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
-            if index % log_every_t == 0 or index == total_steps - 1:
-                intermediates['x_inter'].append(x_target_noisy)
-
-        return x_target_noisy, intermediates
-    
-    def more_like_clip(self, input_info, x_target_noisy, batch_view_num=1):
-        print("I am in more_like_clip")
-        x_input = input_info['x']
-        print("shape of the x_input image" + str(x_input.shape))
-        print("shape of the x_target_noisy tensor" + str(x_target_noisy.shape))
-
-        x_target_noisy.requires_grad_(True)
-
-        optimizer = Adam([x_target_noisy], lr=1e-2)
-
-        for i in range(10):
-            optimizer.zero_grad()
-
-            x_input_embed = self.clip_model.encode_image(x_input)
-            x_target_noisy_embed = self.clip_model.encode_image(x_target_noisy)
-
-            loss = -cosine_similarity(x_input_embed, x_target_noisy_embed).mean()
-            loss.backward()
-
-            optimizer.step()
-        
-        return x_target_noisy
-    
-    @torch.no_grad()
-    def sample_symmetric(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
-        """
-        @param input_info:      x, elevation
-        @param clip_embed:      B,M,768
-        @param unconditional_scale:
-        @param log_every_t:
-        @param batch_view_num:
-        @return:
-        """
-        print(f"unconditional scale {unconditional_scale:.1f}")
-        C, H, W = 4, self.latent_size, self.latent_size
-        B = clip_embed.shape[0]
-        N = self.model.view_num
-        device = self.model.device
-        x_target_noisy = torch.randn([B, N, C, H, W], device=device)
-
-        timesteps = self.ddim_timesteps
-        intermediates = {'x_inter': []}
-        time_range = np.flip(timesteps)
-        total_steps = timesteps.shape[0]
-
-        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
-        for i, step in enumerate(iterator):
-            index = total_steps - i - 1 # index in ddim state
-            time_steps = torch.full((B,), step, device=device, dtype=torch.long)
-            x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
-    
-            x_target_noisy = self.more_like_clip(x_target_noisy, input_info, batch_view_num=batch_view_num)
-
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
 
