@@ -228,12 +228,13 @@ class SpatialVolumeNet(nn.Module):
         return volume_feats_dict, volume_depth
 
 class SyncMultiviewDiffusion(pl.LightningModule):
+    #old clip image encoder path: "/apdcephfs/private_rondyliu/projects/clip/ViT-L-14.pt"
     def __init__(self, unet_config, scheduler_config,
                  finetune_unet=False, finetune_projection=True,
                  view_num=16, image_size=256,
                  cfg_scale=3.0, output_num=8, batch_view_num=4,
                  drop_conditions=False, drop_scheme='default',
-                 clip_image_encoder_path="/apdcephfs/private_rondyliu/projects/clip/ViT-L-14.pt",
+                 clip_image_encoder_path="./drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt/ViT-L-14.pt",
                  sample_type='ddim', sample_steps=200):
         super().__init__()
 
