@@ -618,7 +618,7 @@ class SyncDDIMSampler:
                     for i in range(H):
                         for j in range(W):
                             for k in range(3):
-                                x_prev[b, n, k, i, j] = x_prev[b, n, k, i, j] + (random.randint(-100,100))/1000
+                                x_prev[b, n, k, i, j] = x_prev[b, n, k, i, j] + float(random.randint(-99,99))/100.0
         return x_prev
 
     @torch.no_grad()
