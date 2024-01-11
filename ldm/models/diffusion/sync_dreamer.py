@@ -617,7 +617,7 @@ class SyncDDIMSampler:
                     for i in range(10,15):
                         for j in range(10,15):
                             for k in range(3):
-                                x_prev[b, n, k, i, j] = 0.0
+                                x_prev[b, n, 0, i, j] = 0.0
         return x_prev
 
     @torch.no_grad()
