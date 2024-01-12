@@ -609,7 +609,9 @@ class SyncDDIMSampler:
                 x_prev_img = (torch.clamp(x_prev,max=1.0,min=-1.0) + 1) * 0.5
                 x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                 x_prev_img = x_prev_img.astype(np.uint8)
-                imsave("test" + str(index) + ".png", x_prev_img[0,anchor])
+
+                output_fn = Path("output/test")/ f'{index}.png'
+                imsave(output_fn, np.concatenate([x_prev_img[0,ni] for ni in range(N)], 1))
 
                 # for n in range(N):
                 #     # if n!=anchor:
