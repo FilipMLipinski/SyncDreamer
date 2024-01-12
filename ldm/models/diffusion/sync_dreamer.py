@@ -611,6 +611,7 @@ class SyncDDIMSampler:
                 x_prev_img = x_prev_img.astype(np.uint8)
 
                 output_fn = Path("output/test")/ f'{index}.png'
+                Path("output/test").mkdir(exist_ok=True, parents=True)
                 imsave(output_fn, np.concatenate([x_prev_img[0,ni] for ni in range(N)], 1))
 
                 # for n in range(N):
