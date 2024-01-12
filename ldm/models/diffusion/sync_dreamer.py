@@ -600,7 +600,7 @@ class SyncDDIMSampler:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
         #     x_prev = x_prev + noise
         # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
-        if is_step0:
+        if not is_step0:
             for b in range(B):
                 anchor = random.randint(0, N-1)
                 # with torch.no_grad():
