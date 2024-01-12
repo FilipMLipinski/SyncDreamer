@@ -587,8 +587,6 @@ class SyncDDIMSampler:
         device = x_target_noisy.device
         B,N,_,H,W = x_target_noisy.shape
 
-        print(B)
-
         # apply noise
         a_t = self.ddim_alphas[index].to(device).float().view(1,1,1,1,1)
         a_prev = self.ddim_alphas_prev[index].to(device).float().view(1,1,1,1,1)
