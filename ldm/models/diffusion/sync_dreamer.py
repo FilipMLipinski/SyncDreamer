@@ -587,6 +587,8 @@ class SyncDDIMSampler:
         device = x_target_noisy.device
         B,N,_,H,W = x_target_noisy.shape
 
+        print(B)
+
         # apply noise
         a_t = self.ddim_alphas[index].to(device).float().view(1,1,1,1,1)
         a_prev = self.ddim_alphas_prev[index].to(device).float().view(1,1,1,1,1)
@@ -605,6 +607,11 @@ class SyncDDIMSampler:
                 # anchor = random.randint(0, N-1)
                 # with torch.no_grad():
                 #     reference_embed = self.clip_model.encode_image(x_target_noisy[b, anchor, :3])
+
+                    #x_prev_img = (torch.clamp(x_prev,max=1.0,min=-1.0) + 1) * 0.5
+                    #x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                    #x_prev_img = x_prev_img.astype(np.uint8)
+                    # TODO
                 for n in range(N):
                     # if n!=anchor:
                     #     optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
