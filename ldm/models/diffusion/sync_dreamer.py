@@ -484,7 +484,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
         N = x_sample.shape[1]
-        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        #x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
         if return_inter_results:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -696,7 +696,7 @@ class SyncDDIMSampler:
             x_prev_img = x_prev_img.astype(np.uint8)
             output_fn = Path("output/test")/ f'{step}.png'
             Path("output/test").mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0,ni] for ni in range(N)], 1))
+            imsave(output_fn, np.concatenate([x_prev_img[:, ni] for ni in range(N)], 1))
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
