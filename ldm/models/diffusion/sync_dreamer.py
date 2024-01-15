@@ -382,7 +382,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
     def decode_first_stage(self, z):
         with torch.no_grad():
             z = 1. / self.first_stage_scale_factor * z
-            print(self.first_stage_scale_factor, 0.18215)
             return self.first_stage_model.decode(z)
 
     def prepare(self, batch):
@@ -486,7 +485,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
 
         N = x_sample.shape[1]
         x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
-        # TODO: last time you commented this out to see what happens. The result was BROKEN, so thats a great start. The question is
+        # When I commented out the above the result was BROKEN, so thats a great start. The question is
         # why if that line is added in the sampler.sample function, it does not create nice images.
 
         if return_inter_results:
@@ -692,6 +691,8 @@ class SyncDDIMSampler:
         N = self.model.view_num
         device = self.model.device
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
+
+        self.model._init_first_stage()
 
         timesteps = self.ddim_timesteps
         intermediates = {'x_inter': []}
