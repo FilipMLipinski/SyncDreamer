@@ -599,6 +599,8 @@ class SyncDDIMSampler:
         dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
+        self.model.log_image(x_prev, 0, index, "image_logs")
+
         x_prev_img = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
         x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
         x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
