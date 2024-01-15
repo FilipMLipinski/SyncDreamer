@@ -382,6 +382,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
     def decode_first_stage(self, z):
         with torch.no_grad():
             z = 1. / self.first_stage_scale_factor * z
+            print(self.first_stage_scale_factor, 0.18215)
             return self.first_stage_model.decode(z)
 
     def prepare(self, batch):
@@ -484,9 +485,10 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
         N = x_sample.shape[1]
-        #x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
         # TODO: last time you commented this out to see what happens. The result was BROKEN, so thats a great start. The question is
         # why if that line is added in the sampler.sample function, it does not create nice images.
+
         if return_inter_results:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -599,7 +601,6 @@ class SyncDDIMSampler:
         dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-        self.model.log_image(x_prev, 0, index, "image_logs")
 
         x_prev_img = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
         x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
