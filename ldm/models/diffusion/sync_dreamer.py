@@ -380,6 +380,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
                 return posterior.mode().detach() * self.first_stage_scale_factor
 
     def decode_first_stage(self, z):
+        print("I'm decoding firtst stage")
         with torch.no_grad():
             z = 1. / self.first_stage_scale_factor * z
             return self.first_stage_model.decode(z)
@@ -485,7 +486,8 @@ class SyncMultiviewDiffusion(pl.LightningModule):
 
         N = x_sample.shape[1]
         #x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
-        # TODO: last time you commented this out to see what happens. The result was 
+        # TODO: last time you commented this out to see what happens. The result was BROKEN, so thats a great start. The question is
+        # why if that line is added in the sampler.sample function, it does not create nice images.
         if return_inter_results:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
