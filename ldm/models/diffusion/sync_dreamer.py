@@ -480,6 +480,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         return x_noisy, noise
 
     def decode_for_sampler(self, x):
+        N = x.shape[1]
         x = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
         return x
 
