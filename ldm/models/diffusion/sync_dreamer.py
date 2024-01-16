@@ -479,6 +479,10 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         x_noisy = sqrt_alphas_cumprod_ * x_start + sqrt_one_minus_alphas_cumprod_ * noise
         return x_noisy, noise
 
+    def decode_for_sampler(self, x):
+        x = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        return x
+
     def sample(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
         _, clip_embed, input_info = self.prepare(batch)
         x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
@@ -702,7 +706,7 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            x_prev_img = torch.stack([self.model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            x_prev_img = self.model.decode_for_sampler(x_target_noisy)
             x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
             x_prev_img = x_prev_img.astype(np.uint8)
