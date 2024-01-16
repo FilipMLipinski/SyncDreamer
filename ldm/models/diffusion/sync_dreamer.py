@@ -603,13 +603,13 @@ class SyncDDIMSampler:
 
         x_prev_img = x_prev.to(torch.device("cpu"))
         x_prev_img = torch.stack([self.model.decode_first_stage(x_prev_img[:, ni]) for ni in range(N)], 1)
-        print("just output an image")
         x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
         x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
         x_prev_img = x_prev_img.astype(np.uint8)
         output_fn = Path("output/test")/ f'{index}.png'
         Path("output/test").mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        print("just saved an image")
 
         x_prev = x_prev.to(device)
 
