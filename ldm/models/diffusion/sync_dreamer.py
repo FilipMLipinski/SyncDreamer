@@ -481,7 +481,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
 
     def decode_for_sampler(self, x):
         N = x.shape[1]
-        x = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        x = torch.stack([self.decode_first_stage(x[:, ni]) for ni in range(N)], 1)
         return x
 
     def sample(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
