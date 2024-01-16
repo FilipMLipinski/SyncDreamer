@@ -601,7 +601,6 @@ class SyncDDIMSampler:
         dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-        x_prev_img = x_prev.to(torch.device("cpu"))
         x_prev_img = torch.stack([self.model.decode_first_stage(x_prev_img[:, ni]) for ni in range(N)], 1)
         x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
         x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
@@ -610,8 +609,6 @@ class SyncDDIMSampler:
         Path("output/test").mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
         print("just saved an image")
-
-        x_prev = x_prev.to(device)
 
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
@@ -698,6 +695,9 @@ class SyncDDIMSampler:
 
         self.model._init_first_stage()
         # writing this created a weird error - RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
+
+        self.first_stage_model.to(device)
+        # try this?
 
         timesteps = self.ddim_timesteps
         intermediates = {'x_inter': []}
