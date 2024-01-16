@@ -719,7 +719,7 @@ class SyncDDIMSampler:
                 intermediates['x_inter'].append(x_target_noisy)
 
             print(i)
-            if(i==40):
+            if(i==10):
                 return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
