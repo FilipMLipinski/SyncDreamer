@@ -696,7 +696,7 @@ class SyncDDIMSampler:
         self.model._init_first_stage()
         # writing this created a weird error - RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
 
-        self.first_stage_model.to(device)
+        self.model.first_stage_model.to(device)
         # try this?
 
         timesteps = self.ddim_timesteps
