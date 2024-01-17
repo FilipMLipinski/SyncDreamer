@@ -754,5 +754,8 @@ class SyncDDIMSampler:
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
+            
+            if(i==10):
+                return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
