@@ -1,5 +1,8 @@
 from pathlib import Path
 
+# some stuff I imported
+from omegaconf import OmegaConf
+
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -479,11 +482,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         x_noisy = sqrt_alphas_cumprod_ * x_start + sqrt_one_minus_alphas_cumprod_ * noise
         return x_noisy, noise
 
-    def decode_for_sampler(self, x):
-        N = x.shape[1]
-        x = torch.stack([self.decode_first_stage(x[:, ni]) for ni in range(N)], 1)
-        return x
-
     def sample(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
         _, clip_embed, input_info = self.prepare(batch)
         x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
@@ -690,6 +688,18 @@ class SyncDDIMSampler:
         device = self.model.device
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
 
+        # doing something crazy: loading the model again just to use it here instead of in the generate.py file
+        def load_model(cfg,ckpt,strict=True):
+            config = OmegaConf.load(cfg)
+            model = instantiate_from_config(config.model)
+            print(f'loading model from {ckpt} ...')
+            ckpt = torch.load(ckpt,map_location='cpu')
+            model.load_state_dict(ckpt['state_dict'],strict=strict)
+            model = model.cuda().eval()
+            return model
+        
+        encoder_model = load_model('configs/syncdreamer.yaml', "../drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt", strict=True)
+
         #self.model._init_first_stage()
         # writing this created a weird error - RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
         #self.model.first_stage_model.to(device)
@@ -707,19 +717,15 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            # x_prev_img = self.model.decode_for_sampler(x_target_noisy)
-            # x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
-            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            # x_prev_img = x_prev_img.astype(np.uint8)
-            # output_fn = Path("output/test")/ f'{index}.png'
-            # Path("output/test").mkdir(exist_ok=True, parents=True)
-            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            x_prev_img = encoder_model.decode_first_stage(x_target_noisy)
+            x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
+            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            x_prev_img = x_prev_img.astype(np.uint8)
+            output_fn = Path("output/test")/ f'{index}.png'
+            Path("output/test").mkdir(exist_ok=True, parents=True)
+            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
             
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
-
-            print(i)
-            if(i==10):
-                return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
