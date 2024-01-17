@@ -520,17 +520,17 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         @return:
         """
 
-        x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
-        print("shape of sample: " + str(x_sample.shape))
-        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
-        print("shape of sample post-decode: " + str(x_sample.shape))
-
         print(f"unconditional scale {cfg_scale:.1f}")
         C, H, W = 4, self.sampler.latent_size, self.sampler.latent_size
         B = clip_embed.shape[0]
         N = self.view_num
         device = self.device
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
+
+        x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
+        print("shape of sample: " + str(x_sample.shape))
+        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        print("shape of sample post-decode: " + str(x_sample.shape))
 
         timesteps = self.sampler.ddim_timesteps
         time_range = np.flip(timesteps)
@@ -755,7 +755,7 @@ class SyncDDIMSampler:
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
             
-            if(i==10):
+            if(i==3):
                 return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
