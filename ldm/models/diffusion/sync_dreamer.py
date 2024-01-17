@@ -491,6 +491,14 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # When I commented out the above the result was BROKEN, so thats a great start. The question is
         # why if that line is added in the sampler.sample function, it does not create nice images.
 
+        # trying to save the sample here, see if it works
+        x_prev_img = (torch.clamp(x_sample,max=1.0,min=-1.0) + 1) * 0.5
+        x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+        x_prev_img = x_prev_img.astype(np.uint8)
+        output_fn = Path("output/test")/ 'saved_in_sync_dreamer.png'
+        Path("output/test").mkdir(exist_ok=True, parents=True)
+        imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+
         if return_inter_results:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -731,8 +739,8 @@ class SyncDDIMSampler:
         # encoder_model = load_model('configs/syncdreamer.yaml', "../drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt", strict=True)
         # DIDNT WORK - my guess is it fucked up the ram.
 
-        self._init_first_stage()
-        self.first_stage_model.to(device)
+        # self._init_first_stage()
+        # self.first_stage_model.to(device)
 
         #self.model._init_first_stage()
         # writing this created a weird error - RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
@@ -751,14 +759,17 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
-            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            x_prev_img = x_prev_img.astype(np.uint8)
-            output_fn = Path("output/test")/ f'{index}.png'
-            Path("output/test").mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            # x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            # x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
+            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            # x_prev_img = x_prev_img.astype(np.uint8)
+            # output_fn = Path("output/test")/ f'{index}.png'
+            # Path("output/test").mkdir(exist_ok=True, parents=True)
+            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
             
+            if(i==10):
+                return x_target_noisy, intermediates
+
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
 
