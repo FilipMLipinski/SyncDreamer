@@ -519,7 +519,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         @return:
         """
         print(f"unconditional scale {cfg_scale:.1f}")
-        C, H, W = 4, self.latent_size, self.latent_size
+        C, H, W = 4, self.sampler.latent_size, self.sampler.latent_size
         B = clip_embed.shape[0]
         N = self.view_num
         device = self.device
