@@ -707,7 +707,7 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            x_prev_img = torch.stack([self.model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
             x_prev_img = x_prev_img.astype(np.uint8)
