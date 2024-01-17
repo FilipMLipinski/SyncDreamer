@@ -491,14 +491,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # When I commented out the above the result was BROKEN, so thats a great start. The question is
         # why if that line is added in the sampler.sample function, it does not create nice images.
 
-        # trying to save the sample here, see if it works
-        x_prev_img = (torch.clamp(x_sample,max=1.0,min=-1.0) + 1) * 0.5
-        x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-        x_prev_img = x_prev_img.astype(np.uint8)
-        output_fn = Path("output/test")/ 'saved_in_sync_dreamer.png'
-        Path("output/test").mkdir(exist_ok=True, parents=True)
-        imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-
         if return_inter_results:
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -514,6 +506,45 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             return x_sample, inter_results
         else:
             return x_sample
+        
+    def hacky_sample(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
+        _, clip_embed, input_info = self.prepare(batch)
+        # sample needs parameters: (self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1)
+        """
+        @param input_info:      x, elevation
+        @param clip_embed:      B,M,768
+        @param unconditional_scale:
+        @param log_every_t:
+        @param batch_view_num:
+        @return:
+        """
+        print(f"unconditional scale {cfg_scale:.1f}")
+        C, H, W = 4, self.latent_size, self.latent_size
+        B = clip_embed.shape[0]
+        N = self.view_num
+        device = self.device
+        x_target_noisy = torch.randn([B, N, C, H, W], device=device)
+
+        timesteps = self.sampler.ddim_timesteps
+        time_range = np.flip(timesteps)
+        total_steps = timesteps.shape[0]
+
+        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
+        for i, step in enumerate(iterator):
+            index = total_steps - i - 1 # index in ddim state
+            time_steps = torch.full((B,), step, device=device, dtype=torch.long)
+            x_target_noisy = self.sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
+
+            x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
+            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            x_prev_img = x_prev_img.astype(np.uint8)
+            output_fn = Path("output/test")/ f'{index}.png'
+            Path("output/test").mkdir(exist_ok=True, parents=True)
+            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+
+        x_target_noisy = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+        return x_target_noisy
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)

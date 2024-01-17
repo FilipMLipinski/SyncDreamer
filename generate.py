@@ -54,7 +54,7 @@ def main():
         sampler = SyncDDIMSampler(model, flags.sample_steps)
     else:
         raise NotImplementedError
-    x_sample = model.sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
+    x_sample = model.hacky_sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
 
     B, N, _, H, W = x_sample.shape
     x_sample = (torch.clamp(x_sample,max=1.0,min=-1.0) + 1) * 0.5
