@@ -670,7 +670,38 @@ class SyncDDIMSampler:
         e_t = torch.cat(e_t, 1)
         x_prev = self.denoise_apply_impl(x_target_noisy, index, e_t, is_step0)
         return x_prev
-
+    
+    # another stupid idea: copy the code for init_first_stage
+    def _init_first_stage(self):
+        first_stage_config={
+            "target": "ldm.models.autoencoder.AutoencoderKL",
+            "params": {
+                "embed_dim": 4,
+                "monitor": "val/rec_loss",
+                "ddconfig":{
+                "double_z": True,
+                "z_channels": 4,
+                "resolution": self.image_size,
+                "in_channels": 3,
+                "out_ch": 3,
+                "ch": 128,
+                "ch_mult": [1,2,4,4],
+                "num_res_blocks": 2,
+                "attn_resolutions": [],
+                "dropout": 0.0
+                },
+                "lossconfig": {"target": "torch.nn.Identity"},
+            }
+        }
+        self.first_stage_scale_factor = 0.18215
+        self.first_stage_model = instantiate_from_config(first_stage_config)
+        self.first_stage_model = disable_training_module(self.first_stage_model)
+    
+    def decode_first_stage(self, z):
+        with torch.no_grad():
+            z = 1. / self.first_stage_scale_factor * z
+            return self.first_stage_model.decode(z)
+    
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         """
@@ -689,16 +720,19 @@ class SyncDDIMSampler:
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
 
         # doing something crazy: loading the model again just to use it here instead of in the generate.py file
-        def load_model(cfg,ckpt,strict=True):
-            config = OmegaConf.load(cfg)
-            model = instantiate_from_config(config.model)
-            print(f'loading model from {ckpt} ...')
-            ckpt = torch.load(ckpt,map_location='cpu')
-            model.load_state_dict(ckpt['state_dict'],strict=strict)
-            model = model.cuda().eval()
-            return model
-        
-        encoder_model = load_model('configs/syncdreamer.yaml', "../drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt", strict=True)
+        # def load_model(cfg,ckpt,strict=True):
+        #     config = OmegaConf.load(cfg)
+        #     model = instantiate_from_config(config.model)
+        #     print(f'loading model from {ckpt} ...')
+        #     ckpt = torch.load(ckpt,map_location='cpu')
+        #     model.load_state_dict(ckpt['state_dict'],strict=strict)
+        #     model = model.cuda().eval()
+        #     return model
+        # encoder_model = load_model('configs/syncdreamer.yaml', "../drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt", strict=True)
+        # DIDNT WORK - my guess is it fucked up the ram.
+
+        self.init_first_stage()
+        self.first_stage_model.to(device)
 
         #self.model._init_first_stage()
         # writing this created a weird error - RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
@@ -717,7 +751,7 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            x_prev_img = encoder_model.decode_first_stage(x_target_noisy)
+            x_prev_img = self.decode_first_stage(x_target_noisy)
             x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
             x_prev_img = x_prev_img.astype(np.uint8)
