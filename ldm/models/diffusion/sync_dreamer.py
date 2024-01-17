@@ -681,7 +681,7 @@ class SyncDDIMSampler:
                 "ddconfig":{
                 "double_z": True,
                 "z_channels": 4,
-                "resolution": self.image_size,
+                "resolution": 256,
                 "in_channels": 3,
                 "out_ch": 3,
                 "ch": 128,
