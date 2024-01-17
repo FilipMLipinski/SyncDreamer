@@ -731,7 +731,7 @@ class SyncDDIMSampler:
         # encoder_model = load_model('configs/syncdreamer.yaml', "../drive/MyDrive/Colab_files/syncdreamer-pretrain.ckpt", strict=True)
         # DIDNT WORK - my guess is it fucked up the ram.
 
-        self.init_first_stage()
+        self._init_first_stage()
         self.first_stage_model.to(device)
 
         #self.model._init_first_stage()
