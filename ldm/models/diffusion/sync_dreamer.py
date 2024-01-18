@@ -559,12 +559,12 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             # device of x_target_noisy: 0
             # TODO: why?
 
-            x_prev_img = (torch.clamp(x_target_noisy_decoded,max=1.0,min=-1.0) + 1) * 0.5
-            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            x_prev_img = x_prev_img.astype(np.uint8)
-            output_fn = Path("output/test")/ f'{index}.png'
-            Path("output/test").mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            # x_prev_img = (torch.clamp(x_target_noisy_decoded,max=1.0,min=-1.0) + 1) * 0.5
+            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            # x_prev_img = x_prev_img.astype(np.uint8)
+            # output_fn = Path("output/test")/ f'{index}.png'
+            # Path("output/test").mkdir(exist_ok=True, parents=True)
+            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)
@@ -788,13 +788,13 @@ class SyncDDIMSampler:
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-            x_prev_img = torch.stack([self.model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
-            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            x_prev_img = x_prev_img.astype(np.uint8)
-            output_fn = Path("output/test")/ f'{index}.png'
-            Path("output/test").mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            # x_prev_img = torch.stack([self.model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            # x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
+            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            # x_prev_img = x_prev_img.astype(np.uint8)
+            # output_fn = Path("output/test")/ f'{index}.png'
+            # Path("output/test").mkdir(exist_ok=True, parents=True)
+            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
