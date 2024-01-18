@@ -545,8 +545,8 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
             print("shape of x_target_noisy: " + str(x_target_noisy.shape))
-            print("performing the identity operation")
-            x_target_noisy = sampler.identity(x_target_noisy)
+            print("performing the dummy transformation")
+            x_target_noisy = sampler.dummy_transformation(x_target_noisy)
 
             x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
@@ -728,8 +728,12 @@ class SyncDDIMSampler:
     # another stupid idea: copy the code for init_first_stage// deleted
 
     # another stupid idea: identity
-    def identity(self, x_target_noisy):
-        return x_target_noisy
+    def dummy_transformation(self, x_target_noisy):
+        C, H, W = 4, self.latent_size, self.latent_size
+        N = self.model.view_num
+        B = 1
+        device = self.model.view_num
+        return torch.randn([B, N, C, H, W], device=device)
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
