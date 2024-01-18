@@ -732,7 +732,7 @@ class SyncDDIMSampler:
         C, H, W = 4, self.latent_size, self.latent_size
         N = self.model.view_num
         B = 1
-        device = self.model.view_num
+        device = self.model.device
         return torch.randn([B, N, C, H, W], device=device)
     
     @torch.no_grad()
