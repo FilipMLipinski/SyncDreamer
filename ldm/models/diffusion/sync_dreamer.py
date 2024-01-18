@@ -729,7 +729,7 @@ class SyncDDIMSampler:
     # another stupid idea: copy the code for init_first_stage// deleted
 
     # another stupid idea: dummy transform
-    def dummy_transformation(self, x_target_noisy, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
+    def dummy_transformation(self, x_target_n, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         C, H, W = 4, self.latent_size, self.latent_size
         N = self.model.view_num
         B = 1
@@ -737,6 +737,10 @@ class SyncDDIMSampler:
         timesteps = self.ddim_timesteps
         time_steps = torch.full((B,), timesteps[0], device=device, dtype=torch.long)
         index = timesteps.shape[0] - 1
+
+        # testing the below line now
+        x_target_noisy = torch.randn([B, N, C, H, W], device=device)
+
         x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
         return x_target_noisy

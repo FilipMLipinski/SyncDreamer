@@ -52,7 +52,7 @@ def main():
 
     if flags.sampler=='ddim':
         sampler = SyncDDIMSampler(model, flags.sample_steps)
-        print("nr of timesteps in generate.py sampler: " + str(len(sampler.ddim_timesteps)))
+        # print("nr of timesteps in generate.py sampler: " + str(len(sampler.ddim_timesteps)))
     else:
         raise NotImplementedError
     # x_sample = model.sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
