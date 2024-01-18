@@ -561,7 +561,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             Path("output/test").mkdir(exist_ok=True, parents=True)
             imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
-            if(i == 1):
+            if(i == 0):
                 return
 
     def log_image(self,  x_sample, batch, step, output_dir):
@@ -729,21 +729,24 @@ class SyncDDIMSampler:
     # another stupid idea: copy the code for init_first_stage// deleted
 
     # another stupid idea: dummy transform
+    @torch.no_grad()
     def dummy_transformation(self, x_target_n, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         C, H, W = 4, self.latent_size, self.latent_size
         N = self.model.view_num
         B = 1
         device = self.model.device
         timesteps = self.ddim_timesteps
-        time_steps = torch.full((B,), timesteps[0], device=device, dtype=torch.long)
-        index = timesteps.shape[0] - 1
-
-        # testing the below line now
+        time_range = np.flip(timesteps)
+        total_steps = timesteps.shape[0]
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
 
-        x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
+        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
+        for i, step in enumerate(iterator):
+            index = total_steps - 1 - i
+            time_steps = torch.full((B,), step, device=device, dtype=torch.long)
+            x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
 
-        return x_target_noisy
+            if(i==0): return x_target_noisy
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
