@@ -729,7 +729,7 @@ class SyncDDIMSampler:
     # another stupid idea: copy the code for init_first_stage// deleted
 
     # another stupid idea: dummy transform
-    @torch.no_grad()
+    # @torch.no_grad()
     def dummy_transformation(self, x_target_noisy, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         C, H, W = 4, self.latent_size, self.latent_size
         N = self.model.view_num
