@@ -536,6 +536,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # device of sample: 0
 
         timesteps = self.sampler.ddim_timesteps
+        print("timesteps in current sampler: " + str(timesteps))
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
 
@@ -774,7 +775,7 @@ class SyncDDIMSampler:
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
             
-            if(i==3):
+            if(i==1):
                 return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
