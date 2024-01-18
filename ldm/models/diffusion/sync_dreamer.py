@@ -519,8 +519,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         @param batch_view_num:
         @return:
         """
-
-        print(f"unconditional scale {cfg_scale:.1f}")
         C, H, W = 4, sampler.latent_size, sampler.latent_size
         B = clip_embed.shape[0]
         N = self.view_num
