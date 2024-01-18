@@ -535,7 +535,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # shape of sample post-decode: torch.Size([1, 16, 3, 256, 256])
         # device of sample: 0
 
-        timesteps = self.sampler.ddim_timesteps
+        timesteps = sampler.ddim_timesteps
         print("timesteps in the model view of sampler: " + str(len(timesteps)))
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
@@ -544,10 +544,10 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         for i, step in enumerate(iterator):
             index = total_steps - i - 1 # index in ddim state
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
-            x_target_noisy = self.sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
+            x_target_noisy = sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
             print("shape of x_target_noisy: " + str(x_target_noisy.shape))
-            print("performing the dummy transformation")
-            x_target_noisy = sampler.dummy_transformation(x_target_noisy)
+            #print("performing the dummy transformation")
+            #x_target_noisy = sampler.dummy_transformation(x_target_noisy)
 
             x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
