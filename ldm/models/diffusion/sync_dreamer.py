@@ -531,9 +531,9 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         print("shape of sample: " + str(x_sample.shape))
         x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
         print("shape of sample post-decode: " + str(x_sample.shape))
-        print("device of sample: " + str(x_sample.get_device()))
         # shape of sample: torch.Size([1, 16, 4, 32, 32])
         # shape of sample post-decode: torch.Size([1, 16, 3, 256, 256])
+        # device of sample: 0
 
         timesteps = self.sampler.ddim_timesteps
         time_range = np.flip(timesteps)
@@ -545,12 +545,16 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
             print("shape of x_target_noisy: " + str(x_target_noisy.shape))
+            print("performing the identity operation")
+            x_target_noisy = sampler.identity(x_target_noisy)
+
             x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
+            # device of x_target_noisy: 0
             # TODO: why?
-            print("device of x_target_noisy: " + str(x_target_noisy.get_device()))
+            
 
             x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
@@ -722,6 +726,10 @@ class SyncDDIMSampler:
         return x_prev
     
     # another stupid idea: copy the code for init_first_stage// deleted
+
+    # another stupid idea: identity
+    def identity(self, x_target_noisy):
+        return x_target_noisy
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
