@@ -741,7 +741,7 @@ class SyncDDIMSampler:
         # x_target_noisy = torch.randn([B, N, C, H, W], device=device)
         time_steps = torch.full((B,), timesteps[0], device=device, dtype=torch.long)
         index = total_steps - 1
-        x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
+        # x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
         
         return x_target_noisy
     
