@@ -543,15 +543,15 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             index = total_steps - i - 1 # index in ddim state
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
-            print("shape of x_target_noisy: " + str(x_target_noisy.shape))
-            x_target_noisy_1 = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            print("shape of x_target_noisy post-decode: " + str(x_target_noisy_1.shape))
+            #print("shape of x_target_noisy: " + str(x_target_noisy.shape))
+            #x_target_noisy_1 = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            #print("shape of x_target_noisy post-decode: " + str(x_target_noisy_1.shape))
 
-            print("performing the dummy transformation")
-            x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
+            #print("performing the dummy transformation")
+            #x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
             x_target_noisy = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
+            #print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
             # device of x_target_noisy: 0
@@ -563,9 +563,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             output_fn = Path("output/test")/ f'{index}.png'
             Path("output/test").mkdir(exist_ok=True, parents=True)
             imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-
-            if(i == 0):
-                return
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)
