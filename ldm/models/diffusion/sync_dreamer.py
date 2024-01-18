@@ -536,7 +536,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # device of sample: 0
 
         timesteps = self.sampler.ddim_timesteps
-        print("timesteps in current sampler: " + str(timesteps))
+        print("timesteps in the model view of sampler: " + str(len(timesteps)))
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
 
@@ -754,6 +754,7 @@ class SyncDDIMSampler:
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
 
         timesteps = self.ddim_timesteps
+        print("timesteps in the actual sampler: " + str(len(timesteps)))
         intermediates = {'x_inter': []}
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
