@@ -550,14 +550,14 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             #print("performing the dummy transformation")
             #x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
-            x_target_noisy = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+            x_target_noisy_decoded = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             #print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
             # device of x_target_noisy: 0
             # TODO: why?
 
-            x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
+            x_prev_img = (torch.clamp(x_target_noisy_decoded,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
             x_prev_img = x_prev_img.astype(np.uint8)
             output_fn = Path("output/test")/ f'{index}.png'
