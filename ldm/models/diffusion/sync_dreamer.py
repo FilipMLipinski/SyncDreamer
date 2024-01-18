@@ -550,6 +550,8 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             #print("performing the dummy transformation")
             #x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
+            sampler.decode_in_sampler(self, x_target_noisy)
+
             x_target_noisy_decoded = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             #print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
@@ -752,6 +754,11 @@ class SyncDDIMSampler:
         # x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
         
         return x_target_noisy
+    
+    def decode_in_sampler(self, model, x_target_noisy):
+        N = self.model.view_num
+        x_target_decoded = torch.stack([model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+        print("shape of the decoded sample IN SAMPLER: " + str(x_target_decoded.shape))
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
