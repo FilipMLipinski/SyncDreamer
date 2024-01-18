@@ -548,7 +548,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
             x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            # print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
+            print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
             # device of x_target_noisy: 0
