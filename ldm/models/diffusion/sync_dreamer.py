@@ -265,11 +265,11 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         self.model = UNetWrapper(unet_config, drop_conditions=drop_conditions, drop_scheme=drop_scheme)
         self.scheduler_config = scheduler_config
 
-        latent_size = image_size//8
-        if sample_type=='ddim':
-            self.sampler = SyncDDIMSampler(self, sample_steps , "uniform", 1.0, latent_size=latent_size)
-        else:
-            raise NotImplementedError
+        # latent_size = image_size//8
+        # if sample_type=='ddim':
+        #     self.sampler = SyncDDIMSampler(self, sample_steps , "uniform", 1.0, latent_size=latent_size)
+        # else:
+        #     raise NotImplementedError
 
     def _init_clip_projection(self):
         self.cc_projection = nn.Linear(772, 768)
@@ -521,7 +521,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         """
 
         print(f"unconditional scale {cfg_scale:.1f}")
-        C, H, W = 4, self.sampler.latent_size, self.sampler.latent_size
+        C, H, W = 4, sampler.latent_size, sampler.latent_size
         B = clip_embed.shape[0]
         N = self.view_num
         device = self.device
@@ -576,17 +576,17 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         output_dir = Path(output_dir)
         imsave(str(output_dir/f'{step}.jpg'), concat_images_list(*image_cond, vert=True))
 
-    @torch.no_grad()
-    def validation_step(self, batch, batch_idx):
-        if batch_idx==0 and self.global_rank==0:
-            self.eval()
-            step = self.global_step
-            batch_ = {}
-            for k, v in batch.items(): batch_[k] = v[:self.output_num]
-            x_sample = self.sample(self.sampler, batch_, self.cfg_scale, self.batch_view_num)
-            output_dir = Path(self.image_dir) / 'images' / 'val'
-            output_dir.mkdir(exist_ok=True, parents=True)
-            self.log_image(x_sample, batch, step, output_dir=output_dir)
+    # @torch.no_grad()
+    # def validation_step(self, batch, batch_idx):
+    #     if batch_idx==0 and self.global_rank==0:
+    #         self.eval()
+    #         step = self.global_step
+    #         batch_ = {}
+    #         for k, v in batch.items(): batch_[k] = v[:self.output_num]
+    #         x_sample = self.sample(self.sampler, batch_, self.cfg_scale, self.batch_view_num)
+    #         output_dir = Path(self.image_dir) / 'images' / 'val'
+    #         output_dir.mkdir(exist_ok=True, parents=True)
+    #         self.log_image(x_sample, batch, step, output_dir=output_dir)
 
     def configure_optimizers(self):
         lr = self.learning_rate
