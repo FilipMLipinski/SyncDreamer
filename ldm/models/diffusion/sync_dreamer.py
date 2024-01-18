@@ -534,7 +534,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         # device of sample: 0
 
         timesteps = sampler.ddim_timesteps
-        print("timesteps in the model view of sampler: " + str(len(timesteps)))
+        #print("timesteps in the model view of sampler: " + str(len(timesteps)))
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
 
@@ -545,10 +545,10 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             x_target_noisy = sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
             print("shape of x_target_noisy: " + str(x_target_noisy.shape))
             print("performing the dummy transformation")
-            x_target_noisy = sampler.dummy_transformation(x_target_noisy)
+            x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
             x_prev_img = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
+            # print("shape of x_target_noisy post-decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
             # device of x_target_noisy: 0
@@ -728,13 +728,18 @@ class SyncDDIMSampler:
     
     # another stupid idea: copy the code for init_first_stage// deleted
 
-    # another stupid idea: identity
-    def dummy_transformation(self, x_target_noisy):
+    # another stupid idea: dummy transform
+    def dummy_transformation(self, x_target_noisy, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         C, H, W = 4, self.latent_size, self.latent_size
         N = self.model.view_num
         B = 1
         device = self.model.device
-        return torch.randn([B, N, C, H, W], device=device)
+        timesteps = self.ddim_timesteps
+        time_steps = torch.full((B,), timesteps[0], device=device, dtype=torch.long)
+        index = timesteps.shape[0] - 1
+        x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
+
+        return x_target_noisy
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
@@ -754,7 +759,6 @@ class SyncDDIMSampler:
         x_target_noisy = torch.randn([B, N, C, H, W], device=device)
 
         timesteps = self.ddim_timesteps
-        print("timesteps in the actual sampler: " + str(len(timesteps)))
         intermediates = {'x_inter': []}
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
