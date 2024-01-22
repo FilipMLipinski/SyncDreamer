@@ -629,7 +629,9 @@ class SyncDDIMSampler:
                     print(x_prev_img[b, anchor].shape)
                     x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
                     print("tensor shape: " + str(list(x_prev_img_tensor.size())))
-                    reference_embed = self.clip_model.encode_image(x_prev_img_tensor)
+                    x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
+                    reference_embed = self.clip_model.encode_image(x_prev_prep)
+
 
                 for n in range(N):
                     if n!=anchor:
