@@ -507,65 +507,6 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             return x_sample, inter_results
         else:
             return x_sample
-        
-    def hacky_sample(self, sampler, batch, cfg_scale, batch_view_num, return_inter_results=False, inter_interval=50, inter_view_interval=2):
-        _, clip_embed, input_info = self.prepare(batch)
-        # sample needs parameters: (self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1)
-        """
-        @param input_info:      x, elevation
-        @param clip_embed:      B,M,768
-        @param unconditional_scale:
-        @param log_every_t:
-        @param batch_view_num:
-        @return:
-        """
-        C, H, W = 4, sampler.latent_size, sampler.latent_size
-        B = clip_embed.shape[0]
-        N = self.view_num
-        device = self.device
-        x_target_noisy = torch.randn([B, N, C, H, W], device=device)
-
-        x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
-        print("shape of sample: " + str(x_sample.shape))
-        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
-        print("shape of sample post-decode: " + str(x_sample.shape))
-        # shape of sample: torch.Size([1, 16, 4, 32, 32])
-        # shape of sample post-decode: torch.Size([1, 16, 3, 256, 256])
-        # device of sample: 0
-
-        timesteps = sampler.ddim_timesteps
-        #print("timesteps in the model view of sampler: " + str(len(timesteps)))
-        time_range = np.flip(timesteps)
-        total_steps = timesteps.shape[0]
-
-        iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
-        for i, step in enumerate(iterator):
-            index = total_steps - i - 1 # index in ddim state
-            time_steps = torch.full((B,), step, device=device, dtype=torch.long)
-            x_target_noisy = sampler.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, cfg_scale, batch_view_num=batch_view_num, is_step0=index==0)
-            #print("shape of x_target_noisy: " + str(x_target_noisy.shape))
-            #x_target_noisy_1 = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            #print("shape of x_target_noisy post-decode: " + str(x_target_noisy_1.shape))
-
-            #print("performing the dummy transformation")
-            #x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
-
-            # sampler.decode_in_sampler(self, x_target_noisy)
-            # TODO: it works!! figure out what happened and keep implementing. 
-            # The issue seemed to be calling self.sampler instead of simply sampler
-
-            x_target_noisy_decoded = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            #print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
-            # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
-            # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
-            # device of x_target_noisy: 0
-
-            # x_prev_img = (torch.clamp(x_target_noisy_decoded,max=1.0,min=-1.0) + 1) * 0.5
-            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            # x_prev_img = x_prev_img.astype(np.uint8)
-            # output_fn = Path("output/test")/ f'{index}.png'
-            # Path("output/test").mkdir(exist_ok=True, parents=True)
-            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
     def log_image(self,  x_sample, batch, step, output_dir):
         process = lambda x: ((torch.clip(x, min=-1, max=1).cpu().numpy() * 0.5 + 0.5) * 255).astype(np.uint8)
@@ -737,30 +678,6 @@ class SyncDDIMSampler:
         x_prev = self.denoise_apply_impl(x_target_noisy, index, e_t, is_step0)
         return x_prev
     
-    # another stupid idea: copy the code for init_first_stage// deleted
-
-    # another stupid idea: dummy transform
-    # @torch.no_grad()
-    def dummy_transformation(self, x_target_noisy, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
-        C, H, W = 4, self.latent_size, self.latent_size
-        N = self.model.view_num
-        B = 1
-        device = self.model.device
-        timesteps = self.ddim_timesteps
-        time_range = np.flip(timesteps)
-        total_steps = timesteps.shape[0]
-        # x_target_noisy = torch.randn([B, N, C, H, W], device=device)
-        time_steps = torch.full((B,), timesteps[0], device=device, dtype=torch.long)
-        index = total_steps - 1
-        # x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
-        
-        return x_target_noisy
-    
-    # def decode_in_sampler(self, model, x_target_noisy):
-    #     N = self.model.view_num
-    #     x_target_decoded = torch.stack([model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-    #     print("shape of the decoded sample IN SAMPLER: " + str(x_target_decoded.shape))
-    
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         """
@@ -788,14 +705,6 @@ class SyncDDIMSampler:
             index = total_steps - i - 1 # index in ddim state
             time_steps = torch.full((B,), step, device=device, dtype=torch.long)
             x_target_noisy = self.denoise_apply(x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=batch_view_num, is_step0=index==0)
-
-            # x_prev_img = torch.stack([self.model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-            # x_prev_img = (torch.clamp(x_target_noisy,max=1.0,min=-1.0) + 1) * 0.5
-            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            # x_prev_img = x_prev_img.astype(np.uint8)
-            # output_fn = Path("output/test")/ f'{index}.png'
-            # Path("output/test").mkdir(exist_ok=True, parents=True)
-            # imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
