@@ -619,22 +619,28 @@ class SyncDDIMSampler:
         if not is_step0:
             for b in range(B):
                 anchor = random.randint(0, N-1)
-                # with torch.no_grad():
-                #     reference_embed = self.clip_model.encode_image(x_target_noisy[b, anchor, :3])
+                print("ANCHOR: " + str(anchor))
+                with torch.no_grad():
+                    x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                    x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                    x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                    x_prev_img = x_prev_img.astype(np.uint8)
+                    reference_embed = self.clip_model.encode_image(x_prev_img[b, anchor])
 
-                # for n in range(N):
-                #     # if n!=anchor:
-                #     #     optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
-                #     #     for i in range(10):
-                #     #         optimizer.zero_grad()
-                #     #         prevn_embed = self.clip_model.encode_image(x_prev[:, n, :3])
-                #     #         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
-                #     #         loss.backward()
-                #     #         optimizer.step()
-                #     for i in range(10,15):
-                #         for j in range(10,15):
-                #             for k in range(3):
-                #                 x_prev[b, n, 0, i, j] = 0.0
+                for n in range(N):
+                    if n!=anchor:
+                        print("   frame: " + str(n))
+                        optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
+                        for i in range(10):
+                            optimizer.zero_grad()
+                            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                            x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                            x_prev_img = x_prev_img.astype(np.uint8)
+                            prevn_embed = self.clip_model.encode_image(x_prev_img[b, n])
+                            loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
+                            loss.backward()
+                            optimizer.step()
         return x_prev
 
     @torch.no_grad()
