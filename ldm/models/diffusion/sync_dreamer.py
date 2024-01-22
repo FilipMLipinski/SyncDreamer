@@ -625,6 +625,8 @@ class SyncDDIMSampler:
                     x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
                     x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                     x_prev_img = x_prev_img.astype(np.uint8)
+                    print(x_prev_img.shape)
+                    print(x_prev_img[b, anchor].shape)
                     reference_embed = self.clip_model.encode_image(x_prev_img[b, anchor])
 
                 for n in range(N):
