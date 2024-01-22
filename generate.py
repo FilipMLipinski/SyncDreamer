@@ -55,20 +55,20 @@ def main():
         # print("nr of timesteps in generate.py sampler: " + str(len(sampler.ddim_timesteps)))
     else:
         raise NotImplementedError
-    # x_sample = model.sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
+    x_sample = model.sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
 
-    # B, N, _, H, W = x_sample.shape
-    # x_sample = (torch.clamp(x_sample,max=1.0,min=-1.0) + 1) * 0.5
-    # x_sample = x_sample.permute(0,1,3,4,2).cpu().numpy() * 255
-    # x_sample = x_sample.astype(np.uint8)
+    B, N, _, H, W = x_sample.shape
+    x_sample = (torch.clamp(x_sample,max=1.0,min=-1.0) + 1) * 0.5
+    x_sample = x_sample.permute(0,1,3,4,2).cpu().numpy() * 255
+    x_sample = x_sample.astype(np.uint8)
 
-    # # use this to convert x_noisy to image format
+    # use this to convert x_noisy to image format
 
-    # for bi in range(B):
-    #     output_fn = Path(flags.output)/ f'{bi}.png'
-    #     imsave(output_fn, np.concatenate([x_sample[bi,ni] for ni in range(N)], 1))
+    for bi in range(B):
+        output_fn = Path(flags.output)/ f'{bi}.png'
+        imsave(output_fn, np.concatenate([x_sample[bi,ni] for ni in range(N)], 1))
 
-    model.hacky_sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
+    # model.hacky_sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
 
 if __name__=="__main__":
     main()

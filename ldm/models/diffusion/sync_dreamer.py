@@ -550,14 +550,15 @@ class SyncMultiviewDiffusion(pl.LightningModule):
             #print("performing the dummy transformation")
             #x_target_noisy = sampler.dummy_transformation(x_target_noisy, input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
-            sampler.decode_in_sampler(self, x_target_noisy)
+            # sampler.decode_in_sampler(self, x_target_noisy)
+            # TODO: it works!! figure out what happened and keep implementing. 
+            # The issue seemed to be calling self.sampler instead of simply sampler
 
             x_target_noisy_decoded = torch.stack([self.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
             #print("shape of x_target_noisy post dummy and decode: " + str(x_target_noisy.shape))
             # shape of x_target_noisy: torch.Size([1, 16, 4, 32, 32])
             # shape of x_target_noisy post-decode: torch.Size([1, 16, 4, 32, 32])
             # device of x_target_noisy: 0
-            # TODO: why?
 
             # x_prev_img = (torch.clamp(x_target_noisy_decoded,max=1.0,min=-1.0) + 1) * 0.5
             # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
@@ -755,10 +756,10 @@ class SyncDDIMSampler:
         
         return x_target_noisy
     
-    def decode_in_sampler(self, model, x_target_noisy):
-        N = self.model.view_num
-        x_target_decoded = torch.stack([model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
-        print("shape of the decoded sample IN SAMPLER: " + str(x_target_decoded.shape))
+    # def decode_in_sampler(self, model, x_target_noisy):
+    #     N = self.model.view_num
+    #     x_target_decoded = torch.stack([model.decode_first_stage(x_target_noisy[:, ni]) for ni in range(N)], 1)
+    #     print("shape of the decoded sample IN SAMPLER: " + str(x_target_decoded.shape))
     
     @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
@@ -798,8 +799,5 @@ class SyncDDIMSampler:
 
             if index % log_every_t == 0 or index == total_steps - 1:
                 intermediates['x_inter'].append(x_target_noisy)
-            
-            if(i==1):
-                return x_target_noisy, intermediates
 
         return x_target_noisy, intermediates
