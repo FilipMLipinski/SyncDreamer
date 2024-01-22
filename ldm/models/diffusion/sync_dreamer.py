@@ -563,7 +563,7 @@ class SyncDDIMSampler:
         self.eta = ddim_eta
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.clip_model, preprocess = clip.load("ViT-B/32", device=device)
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
@@ -627,7 +627,8 @@ class SyncDDIMSampler:
                     x_prev_img = x_prev_img.astype(np.uint8)
                     print(x_prev_img.shape)
                     print(x_prev_img[b, anchor].shape)
-                    reference_embed = self.clip_model.encode_image(x_prev_img[b, anchor])
+                    x_prev_img_pr = self.clip_preprocess(x_prev_img[b, anchor]).unsqueeze(0).to(device)
+                    reference_embed = self.clip_model.encode_image(x_prev_img_pr)
 
                 for n in range(N):
                     if n!=anchor:
