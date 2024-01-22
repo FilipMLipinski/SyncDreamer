@@ -627,8 +627,8 @@ class SyncDDIMSampler:
                     x_prev_img = x_prev_img.astype(np.uint8)
                     print(x_prev_img.shape)
                     print(x_prev_img[b, anchor].shape)
-                    x_prev_img_pr = self.clip_preprocess(x_prev_img[b, anchor]).unsqueeze(0).to(device)
-                    reference_embed = self.clip_model.encode_image(x_prev_img_pr)
+                    x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor]).to(device)
+                    reference_embed = self.clip_model.encode_image(x_prev_img_tensor)
 
                 for n in range(N):
                     if n!=anchor:
@@ -640,7 +640,8 @@ class SyncDDIMSampler:
                             x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
                             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                             x_prev_img = x_prev_img.astype(np.uint8)
-                            prevn_embed = self.clip_model.encode_image(x_prev_img[b, n])
+                            x_prev_img_tensor = torch.from_numpy(x_prev_img[b, n]).to(device)
+                            prevn_embed = self.clip_model.encode_image(x_prev_img_tensor)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             loss.backward()
                             optimizer.step()
