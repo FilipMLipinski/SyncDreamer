@@ -569,7 +569,7 @@ class SyncDDIMSampler:
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
-        
+
         # PERFORMING A TEST IF THIS CLIP EVEN WORKS
         transform = Compose([
             Resize((224, 224)),
@@ -608,9 +608,12 @@ class SyncDDIMSampler:
         img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
         img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
-        imsave(img1, "img1.png")
-        imsave(img2, "img2.png")
-        imsave(img2_original, "img2_original.png")
+        im1 = Image.fromarray(img1)
+        im2 = Image.fromarray(img2)
+        im3 = Image.fromarray(img2_original)
+        im1.save("img1.png")
+        im2.save("img2.png")
+        im3.save("img2_original.png")
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
