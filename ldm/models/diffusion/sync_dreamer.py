@@ -1,8 +1,12 @@
+from io import BytesIO
 from pathlib import Path
+from urllib import request
 
 # some stuff I imported
 from omegaconf import OmegaConf
 from PIL import Image
+import requests
+from io import BytesIO
 
 import pytorch_lightning as pl
 import torch
@@ -612,6 +616,50 @@ class SyncDDIMSampler:
         output_fn = Path("output/test_denoise_impl")/ f'{index}.png'
         Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+
+
+        # PERFORMING A TEST IF THIS CLIP EVEN WORKS
+        transform = Compose([
+            Resize((224, 224)),
+            ToTensor(),
+            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+        ])
+
+        # Load the images
+        url1 = "https://placekitten.com/800/600"
+        response1 = requests.get(url1)
+        img1 = Image.open(BytesIO(response1.content))
+        img2 = np.random.randint(0, 256, size=np.array(img1).shape, dtype=np.uint8)
+        #print(img2)
+        print(np.array(img1))
+        # img2 = Image.open(BytesIO(response2.content))
+        img2 = Image.fromarray(img2)
+
+        # Preprocess the images
+        img1 = transform(img1).unsqueeze(0).to(device)
+        img2_original = transform(img2).clone().unsqueeze(0).to(device)
+        img2 = img2_original.clone()
+
+        # Embed the images
+        with torch.no_grad():
+            img1_embed = self.clip_model.encode_image(img1)
+            img2_embed = self.clip_model.encode_image(img2)
+        
+        #Make img2 more like img1
+        optimizer = torch.optim.Adam([img2.requires_grad_()], lr=0.1)
+        for i in range(3):
+            optimizer.zero_grad()
+            img2_embed = self.clip_model.encode_image(img2)
+            loss = -torch.cosine_similarity(img1_embed, img2_embed).mean()
+            loss.backward()
+            optimizer.step()
+        img1 = img1.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+        img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+        img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+
+        imsave(img1, "img1.png")
+        imsave(img2, "img2.png")
+        imsave(img2_original, "img2_original.png")
 
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
