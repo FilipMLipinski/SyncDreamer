@@ -630,6 +630,7 @@ class SyncDDIMSampler:
                     print(x_prev_img[b, anchor].shape)
                     x_prev_img_pil = Image.fromarray(x_prev_img[b, anchor])
                     x_prev_img_pil.save("PIL.png")
+                    x_prev_img_pil = Image.open("PIL.png")
                     # x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
                     # print("tensor shape: " + str(list(x_prev_img_tensor.size())))
                     # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
