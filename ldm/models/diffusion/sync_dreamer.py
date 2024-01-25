@@ -628,14 +628,14 @@ class SyncDDIMSampler:
                     x_prev_img = x_prev_img.astype(np.uint8)
                     print(x_prev_img.shape)
                     print(x_prev_img[b, anchor].shape)
-                    x_prev_img_pil = Image.fromarray(x_prev_img[b, anchor])
-                    x_prev_img_pil.save("PIL.png")
-                    x_prev_img_pil = Image.open("PIL.png")
                     # x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
                     # print("tensor shape: " + str(list(x_prev_img_tensor.size())))
                     # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
-                    x_prev_img_pil = self.clip_preprocess(x_prev_img_pil).to(device)
-                    reference_embed = self.clip_model.encode_image(x_prev_img_pil)
+
+                    transform = Compose([Resize((256, 256)), ToTensor()])
+                    x_prev_img = transform(x_prev_img[b,anchor]).unsqueeze(0).to(device)
+
+                    reference_embed = self.clip_model.encode_image(x_prev_img)
                     
                     # TODO: find a way to actually clip_emded
 
