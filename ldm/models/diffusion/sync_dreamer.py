@@ -2,6 +2,7 @@ from pathlib import Path
 
 # some stuff I imported
 from omegaconf import OmegaConf
+from PIL import Image
 
 import pytorch_lightning as pl
 import torch
@@ -627,10 +628,14 @@ class SyncDDIMSampler:
                     x_prev_img = x_prev_img.astype(np.uint8)
                     print(x_prev_img.shape)
                     print(x_prev_img[b, anchor].shape)
-                    x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
-                    print("tensor shape: " + str(list(x_prev_img_tensor.size())))
-                    x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
-                    reference_embed = self.clip_model.encode_image(x_prev_prep)
+                    x_prev_img = Image.fromarray(x_prev_img)
+                    x_prev_img.save("PIL.png")
+                    # x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
+                    # print("tensor shape: " + str(list(x_prev_img_tensor.size())))
+                    # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
+                    reference_embed = self.clip_model.encode_image(x_prev_img)
+                    
+                    # TODO: find a way to actually clip_emded
 
 
                 for n in range(N):
