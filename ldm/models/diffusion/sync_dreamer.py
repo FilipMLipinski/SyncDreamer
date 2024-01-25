@@ -7,6 +7,7 @@ from omegaconf import OmegaConf
 from PIL import Image
 import requests
 from io import BytesIO
+import matplotlib.pyplot as plt
 
 import pytorch_lightning as pl
 import torch
@@ -608,12 +609,17 @@ class SyncDDIMSampler:
         img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
         img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
-        im1 = Image.fromarray(img1)
-        im2 = Image.fromarray(img2)
-        im3 = Image.fromarray(img2_original)
-        im1.save("img1.png")
-        im2.save("img2.png")
-        im3.save("img2_original.png")
+        plt.figure(figsize=(15, 5))
+        plt.subplot(1, 3, 1)
+        plt.imshow(img1)
+        plt.title('Reference Image')
+        plt.subplot(1, 3, 2)
+        plt.imshow(img2_original)
+        plt.title('Original Second Image')
+        plt.subplot(1, 3, 3)
+        plt.imshow(img2)
+        plt.title('Modified Second Image')
+        plt.show()
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
