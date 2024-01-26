@@ -705,7 +705,7 @@ class SyncDDIMSampler:
                 for n in range(N):
                     if n!=anchor:
                         print("   frame: " + str(n))
-                        x_leaf = x_prev[:, n]
+                        x_leaf = (x_prev[:, n]).clone().detach()
                         optimizer = torch.optim.Adam([x_leaf.requires_grad_()], lr=0.1)
                         print("    adam set up")
                         for i in range(3):
@@ -716,7 +716,7 @@ class SyncDDIMSampler:
                             x_prev_img = x_prev_img.astype(np.uint8)
                             x_prev_img = x_prev_img[b, anchor]
                             x_prev_img = Image.fromarray(x_prev_img)
-                            x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
+                            x_prev_img = transform(x_prev_img).unsqueeze(0).to(device)
                             prevn_embed = self.clip_model.encode_image(x_prev_img)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             loss.backward()
@@ -733,7 +733,7 @@ class SyncDDIMSampler:
 
         return x_prev
 
-    #@torch.no_grad()
+    # @torch.no_grad()
     def denoise_apply(self, x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=1, is_step0=False):
         """
         @param x_target_noisy:   B,N,4,H,W
@@ -750,31 +750,32 @@ class SyncDDIMSampler:
         B, N, C, H, W = x_target_noisy.shape
 
         # construct source data
-        v_embed = self.model.get_viewpoint_embedding(B, elevation_input) # B,N,v_dim
-        t_embed = self.model.embed_time(time_steps)  # B,t_dim
-        spatial_volume = self.model.spatial_volume.construct_spatial_volume(x_target_noisy, t_embed, v_embed, self.model.poses, self.model.Ks)
+        with torch.no_grad():
+            v_embed = self.model.get_viewpoint_embedding(B, elevation_input) # B,N,v_dim
+            t_embed = self.model.embed_time(time_steps)  # B,t_dim
+            spatial_volume = self.model.spatial_volume.construct_spatial_volume(x_target_noisy, t_embed, v_embed, self.model.poses, self.model.Ks)
 
-        e_t = []
-        target_indices = torch.arange(N) # N
-        for ni in range(0, N, batch_view_num):
-            x_target_noisy_ = x_target_noisy[:, ni:ni + batch_view_num]
-            VN = x_target_noisy_.shape[1]
-            x_target_noisy_ = x_target_noisy_.reshape(B*VN,C,H,W)
+            e_t = []
+            target_indices = torch.arange(N) # N
+            for ni in range(0, N, batch_view_num):
+                x_target_noisy_ = x_target_noisy[:, ni:ni + batch_view_num]
+                VN = x_target_noisy_.shape[1]
+                x_target_noisy_ = x_target_noisy_.reshape(B*VN,C,H,W)
 
-            time_steps_ = repeat_to_batch(time_steps, B, VN)
-            target_indices_ = target_indices[ni:ni+batch_view_num].unsqueeze(0).repeat(B,1)
-            clip_embed_, volume_feats_, x_concat_ = self.model.get_target_view_feats(x_input, spatial_volume, clip_embed, t_embed, v_embed, target_indices_)
-            if unconditional_scale!=1.0:
-                noise = self.model.model.predict_with_unconditional_scale(x_target_noisy_, time_steps_, clip_embed_, volume_feats_, x_concat_, unconditional_scale)
-            else:
-                noise = self.model.model(x_target_noisy_, time_steps_, clip_embed_, volume_feats_, x_concat_, is_train=False)
-            e_t.append(noise.view(B,VN,4,H,W))
+                time_steps_ = repeat_to_batch(time_steps, B, VN)
+                target_indices_ = target_indices[ni:ni+batch_view_num].unsqueeze(0).repeat(B,1)
+                clip_embed_, volume_feats_, x_concat_ = self.model.get_target_view_feats(x_input, spatial_volume, clip_embed, t_embed, v_embed, target_indices_)
+                if unconditional_scale!=1.0:
+                    noise = self.model.model.predict_with_unconditional_scale(x_target_noisy_, time_steps_, clip_embed_, volume_feats_, x_concat_, unconditional_scale)
+                else:
+                    noise = self.model.model(x_target_noisy_, time_steps_, clip_embed_, volume_feats_, x_concat_, is_train=False)
+                e_t.append(noise.view(B,VN,4,H,W))
 
         e_t = torch.cat(e_t, 1)
         x_prev = self.denoise_apply_impl(x_target_noisy, index, e_t, is_step0)
         return x_prev
     
-    #@torch.no_grad()
+    # @torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         """
         @param input_info:      x, elevation
