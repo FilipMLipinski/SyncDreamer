@@ -584,7 +584,7 @@ class SyncDDIMSampler:
         img1 = Image.open(BytesIO(response1.content))
         img2 = np.random.randint(0, 256, size=np.array(img1).shape, dtype=np.uint8)
         print("shape of the images that work: ")
-        print(img1.shape, img2.shape)
+        print(img2.shape)
         #print(img2)
         # img2 = Image.open(BytesIO(response2.content))
         img2 = Image.fromarray(img2)
