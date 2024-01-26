@@ -644,7 +644,7 @@ class SyncDDIMSampler:
         self.ddim_sqrt_one_minus_alphas = torch.sqrt(1. - self.ddim_alphas).float()
 
 
-    @torch.no_grad()
+    #@torch.no_grad()
     def denoise_apply_impl(self, x_target_noisy, index, noise_pred, is_step0=False):
         """
         @param x_target_noisy: B,N,4,H,W
@@ -706,6 +706,7 @@ class SyncDDIMSampler:
                     if n!=anchor:
                         print("   frame: " + str(n))
                         optimizer = torch.optim.Adam([x_prev[:, n].requires_grad_()], lr=0.1)
+                        print("    adam set up")
                         for i in range(3):
                             optimizer.zero_grad()
                             x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
