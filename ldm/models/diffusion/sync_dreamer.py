@@ -609,8 +609,10 @@ class SyncDDIMSampler:
         img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
         img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
+
         plt.figure(figsize=(15, 5))
         plt.subplot(1, 3, 1)
+        plt.savefig("fig.png")
         plt.imshow(img1)
         plt.title('Reference Image')
         plt.subplot(1, 3, 2)
@@ -620,7 +622,8 @@ class SyncDDIMSampler:
         plt.imshow(img2)
         plt.title('Modified Second Image')
         plt.show()
-        plt.savefig("fig.png")
+        
+        # TODO: actually check if this works. And then if it does, why doesn't it work on my arrays???
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
