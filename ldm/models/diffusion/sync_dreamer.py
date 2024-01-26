@@ -731,7 +731,7 @@ class SyncDDIMSampler:
 
         return x_prev
 
-    @torch.no_grad()
+    #@torch.no_grad()
     def denoise_apply(self, x_target_noisy, input_info, clip_embed, time_steps, index, unconditional_scale, batch_view_num=1, is_step0=False):
         """
         @param x_target_noisy:   B,N,4,H,W
@@ -772,7 +772,7 @@ class SyncDDIMSampler:
         x_prev = self.denoise_apply_impl(x_target_noisy, index, e_t, is_step0)
         return x_prev
     
-    @torch.no_grad()
+    #@torch.no_grad()
     def sample(self, input_info, clip_embed, unconditional_scale=1.0, log_every_t=50, batch_view_num=1):
         """
         @param input_info:      x, elevation
