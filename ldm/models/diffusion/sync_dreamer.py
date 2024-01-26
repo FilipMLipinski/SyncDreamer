@@ -612,7 +612,6 @@ class SyncDDIMSampler:
 
         plt.figure(figsize=(15, 5))
         plt.subplot(1, 3, 1)
-        plt.savefig("fig.png")
         plt.imshow(img1)
         plt.title('Reference Image')
         plt.subplot(1, 3, 2)
@@ -621,6 +620,7 @@ class SyncDDIMSampler:
         plt.subplot(1, 3, 3)
         plt.imshow(img2)
         plt.title('Modified Second Image')
+        plt.savefig("fig.png")
         plt.show()
         
         # TODO: actually check if this works. And then if it does, why doesn't it work on my arrays???
