@@ -688,7 +688,7 @@ class SyncDDIMSampler:
                     # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
 
                     transform = Compose([
-                        Resize((256, 256)),
+                        Resize((224, 224)),
                         ToTensor(),
                         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
                     ])
@@ -727,7 +727,7 @@ class SyncDDIMSampler:
         output_fn = Path("output/test_denoise_impl")/ f'{index}.png'
         Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-        
+
         return x_prev
 
     @torch.no_grad()
