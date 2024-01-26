@@ -692,7 +692,8 @@ class SyncDDIMSampler:
                     # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
 
                     transform = Compose([Resize((256, 256)), ToTensor()])
-                    x_prev_img = Image.fromarray(x_prev_img[b, anchor])
+                    x_prev_img = np.random.randint(0, 256, size=x_prev_img[b,anchor].shape, dtype=np.uint8)
+                    x_prev_img = Image.fromarray(x_prev_img)
                     x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
 
                     reference_embed = self.clip_model.encode_image(x_prev_img)
