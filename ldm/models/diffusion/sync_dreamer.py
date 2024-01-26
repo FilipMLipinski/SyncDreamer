@@ -571,59 +571,59 @@ class SyncDDIMSampler:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
 
-        # PERFORMING A TEST IF THIS CLIP EVEN WORKS
-        transform = Compose([
-            Resize((224, 224)),
-            ToTensor(),
-            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-        ])
+        # # PERFORMING A TEST IF THIS CLIP EVEN WORKS
+        # transform = Compose([
+        #     Resize((224, 224)),
+        #     ToTensor(),
+        #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+        # ])
 
-        # Load the images
-        url1 = "https://placekitten.com/800/600"
-        response1 = requests.get(url1)
-        img1 = Image.open(BytesIO(response1.content))
-        img2 = np.random.randint(0, 256, size=np.array(img1).shape, dtype=np.uint8)
-        #print(img2)
-        # img2 = Image.open(BytesIO(response2.content))
-        img2 = Image.fromarray(img2)
+        # # Load the images
+        # url1 = "https://placekitten.com/800/600"
+        # response1 = requests.get(url1)
+        # img1 = Image.open(BytesIO(response1.content))
+        # img2 = np.random.randint(0, 256, size=np.array(img1).shape, dtype=np.uint8)
+        # #print(img2)
+        # # img2 = Image.open(BytesIO(response2.content))
+        # img2 = Image.fromarray(img2)
 
-        # Preprocess the images
-        img1 = transform(img1).unsqueeze(0).to(device)
-        img2_original = transform(img2).clone().unsqueeze(0).to(device)
-        img2 = img2_original.clone()
+        # # Preprocess the images
+        # img1 = transform(img1).unsqueeze(0).to(device)
+        # img2_original = transform(img2).clone().unsqueeze(0).to(device)
+        # img2 = img2_original.clone()
 
-        # Embed the images
-        with torch.no_grad():
-            img1_embed = self.clip_model.encode_image(img1)
-            img2_embed = self.clip_model.encode_image(img2)
+        # # Embed the images
+        # with torch.no_grad():
+        #     img1_embed = self.clip_model.encode_image(img1)
+        #     img2_embed = self.clip_model.encode_image(img2)
         
-        #Make img2 more like img1
-        optimizer = torch.optim.Adam([img2.requires_grad_()], lr=0.1)
-        for i in range(3):
-            optimizer.zero_grad()
-            img2_embed = self.clip_model.encode_image(img2)
-            loss = -torch.cosine_similarity(img1_embed, img2_embed).mean()
-            loss.backward()
-            optimizer.step()
-        img1 = img1.squeeze().permute(1, 2, 0).cpu().detach().numpy()
-        img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
-        img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+        # #Make img2 more like img1
+        # optimizer = torch.optim.Adam([img2.requires_grad_()], lr=0.1)
+        # for i in range(3):
+        #     optimizer.zero_grad()
+        #     img2_embed = self.clip_model.encode_image(img2)
+        #     loss = -torch.cosine_similarity(img1_embed, img2_embed).mean()
+        #     loss.backward()
+        #     optimizer.step()
+        # img1 = img1.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+        # img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
+        # img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
 
-        plt.figure(figsize=(15, 5))
-        plt.subplot(1, 3, 1)
-        plt.imshow(img1)
-        plt.title('Reference Image')
-        plt.subplot(1, 3, 2)
-        plt.imshow(img2_original)
-        plt.title('Original Second Image')
-        plt.subplot(1, 3, 3)
-        plt.imshow(img2)
-        plt.title('Modified Second Image')
-        plt.savefig("fig.png")
-        plt.show()
+        # plt.figure(figsize=(15, 5))
+        # plt.subplot(1, 3, 1)
+        # plt.imshow(img1)
+        # plt.title('Reference Image')
+        # plt.subplot(1, 3, 2)
+        # plt.imshow(img2_original)
+        # plt.title('Original Second Image')
+        # plt.subplot(1, 3, 3)
+        # plt.imshow(img2)
+        # plt.title('Modified Second Image')
+        # plt.savefig("fig.png")
+        # plt.show()
         
-        # TODO: actually check if this works. And then if it does, why doesn't it work on my arrays???
+        # # TODO: actually check if this works. And then if it does, why doesn't it work on my arrays???
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
@@ -692,11 +692,13 @@ class SyncDDIMSampler:
                     # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
 
                     transform = Compose([Resize((256, 256)), ToTensor()])
-                    x_prev_img = transform(x_prev_img[b,anchor]).unsqueeze(0).to(device)
+                    x_prev_img = Image.fromarray(x_prev_img[b, anchor])
+                    x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
 
                     reference_embed = self.clip_model.encode_image(x_prev_img)
                     
                     # TODO: find a way to actually clip_emded
+                    print("we made it!")
 
 
                 for n in range(N):
