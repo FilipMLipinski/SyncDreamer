@@ -666,7 +666,14 @@ class SyncDDIMSampler:
         dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-        
+        x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+        x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+        x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+        x_prev_img = x_prev_img.astype(np.uint8)
+        output_fn = Path("output/test_denoise_impl")/ f'{index}_pre_clip.png'
+        Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
+        imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        print("pre-clip saved")
 
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
@@ -681,11 +688,6 @@ class SyncDDIMSampler:
                     x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
                     x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                     x_prev_img = x_prev_img.astype(np.uint8)
-                    print(x_prev_img.shape)
-                    print(x_prev_img[b, anchor].shape)
-                    # x_prev_img_tensor = torch.from_numpy(x_prev_img[b, anchor].transpose(2, 0, 1)).to(device)
-                    # print("tensor shape: " + str(list(x_prev_img_tensor.size())))
-                    # x_prev_prep = self.clip_preprocess(x_prev_img_tensor).unsqueeze(0).to(device)
 
                     transform = Compose([
                         Resize((224, 224)),
@@ -727,9 +729,10 @@ class SyncDDIMSampler:
         x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
         x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
         x_prev_img = x_prev_img.astype(np.uint8)
-        output_fn = Path("output/test_denoise_impl")/ f'{index}.png'
+        output_fn = Path("output/test_denoise_impl")/ f'{index}_post_clip.png'
         Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        print("post-clip saved")
 
         return x_prev
 
