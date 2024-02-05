@@ -715,19 +715,10 @@ class SyncDDIMSampler:
                         print("    adam set up")
                         for i in range(3):
                             optimizer.zero_grad()
-                            # x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                            # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                            # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-                            # x_prev_img = x_prev_img.astype(np.uint8)
-                            # x_prev_img = x_prev_img[b, anchor]
-                            # x_prev_img = Image.fromarray(x_prev_img)
-                            # x_prev_img.save(f"output/test_denoise_impl/{index}_preclip_{n}.png")
-                            # x_prev_img = transform(x_prev_img).unsqueeze(0).to(device)
-                            # prevn_embed = self.clip_model.model.encode_image(x_prev_img)
-                            # new approach:
                             x_n_decoded = self.model.decode_first_stage(x_n)
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
                             prevn_embed = self.clip_model.forward(x_n_decoded)
+                            print(prevn_embed.grad)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             print("     loss: " + str(loss.item()))
                             loss.backward()
