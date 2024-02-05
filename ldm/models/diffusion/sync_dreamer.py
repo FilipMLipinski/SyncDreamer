@@ -685,23 +685,25 @@ class SyncDDIMSampler:
                 print("ANCHOR: " + str(anchor))
                 with torch.no_grad():
                     x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                    x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                    x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-                    x_prev_img = x_prev_img.astype(np.uint8)
+                    # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                    # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                    # x_prev_img = x_prev_img.astype(np.uint8)
 
-                    transform = Compose([
-                        Resize((224, 224)),
-                        ToTensor(),
-                        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-                    ])
-                    x_prev_img = x_prev_img[b, anchor]
-                    x_prev_img = Image.fromarray(x_prev_img)
-                    x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
+                    # transform = Compose([
+                    #     Resize((224, 224)),
+                    #     ToTensor(),
+                    #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+                    # ])
+                    # x_prev_img = x_prev_img[b, anchor]
+                    # x_prev_img = Image.fromarray(x_prev_img)
+                    # x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
 
-                    reference_embed = self.clip_model.model.encode_image(x_prev_img)
+                    # reference_embed = self.clip_model.model.encode_image(x_prev_img)
                     
                     # TODO: find a way to actually clip_emded
                     print("anchor image embedded")
+                    x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
+                    reference_embed = self.clip_model.forward(x_prev_decoded)
 
 
                 for n in range(N):
