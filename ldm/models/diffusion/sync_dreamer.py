@@ -345,8 +345,8 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         self.first_stage_model = disable_training_module(self.first_stage_model)
 
     def _init_clip_image_encoder(self):
-        self.clip_image_encoder = FrozenCLIPImageEmbedder(model=self.clip_image_encoder_path)
-        self.clip_image_encoder = disable_training_module(self.clip_image_encoder)
+        self.clip_image_encoder = FrozenCLIPImageEmbedder(model=self.clip_image_encoder_path, device='cuda')
+        # self.clip_image_encoder = disable_training_module(self.clip_image_encoder)
 
     def _init_schedule(self):
         self.num_timesteps = 1000
@@ -569,7 +569,7 @@ class SyncDDIMSampler:
         self.eta = ddim_eta
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
+        self.clip_model = model.clip_image_encoder
 
         # # PERFORMING A TEST IF THIS CLIP EVEN WORKS
         # transform = Compose([
@@ -714,7 +714,7 @@ class SyncDDIMSampler:
                             optimizer.zero_grad()
                             x_prev_decoded = torch.stack([self.model.decode_first_stage(x_leaf) for ni in range(N)], 1)
                             x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                            x_prev_img = x_prev_img.permute(0,1,3,4,2).numpy() * 255
+                            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                             x_prev_img = x_prev_img.astype(np.uint8)
                             x_prev_img = x_prev_img[b, anchor]
                             x_prev_img = Image.fromarray(x_prev_img)
