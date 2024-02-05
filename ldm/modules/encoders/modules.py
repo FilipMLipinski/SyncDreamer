@@ -349,7 +349,7 @@ class FrozenCLIPImageEmbedder(AbstractEncoder):
             self,
             model='ViT-L/14',
             jit=False,
-            device='cpu',
+            device='cuda',
             antialias=False,
         ):
         super().__init__()
