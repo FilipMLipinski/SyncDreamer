@@ -683,38 +683,39 @@ class SyncDDIMSampler:
             for b in range(B):
                 anchor = random.randint(0, N-1)
                 print("ANCHOR: " + str(anchor))
-                with torch.no_grad():
-                    x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                    # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                    # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-                    # x_prev_img = x_prev_img.astype(np.uint8)
+                x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                # x_prev_img = x_prev_img.astype(np.uint8)
 
-                    # transform = Compose([
-                    #     Resize((224, 224)),
-                    #     ToTensor(),
-                    #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-                    # ])
-                    # x_prev_img = x_prev_img[b, anchor]
-                    # x_prev_img = Image.fromarray(x_prev_img)
-                    # x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
+                # transform = Compose([
+                #     Resize((224, 224)),
+                #     ToTensor(),
+                #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+                # ])
+                # x_prev_img = x_prev_img[b, anchor]
+                # x_prev_img = Image.fromarray(x_prev_img)
+                # x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
 
-                    # reference_embed = self.clip_model.model.encode_image(x_prev_img)
-                    
-                    # TODO: find a way to actually clip_emded
-                    print("anchor image embedded")
-                    x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                    reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
+                # reference_embed = self.clip_model.model.encode_image(x_prev_img)
+                
+                # TODO: find a way to actually clip_emded
+                print("anchor image embedded")
+                x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
+                reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
 
 
                 for n in range(N):
                     if n!=anchor:
                         print("   frame: " + str(n))
                         #x_leaf = (x_prev[:, n]).clone()#.detach()
-                        optimizer = torch.optim.Adam([x_prev[:,n].requires_grad_()], lr=0.1)
+                        x_n = x_prev[:,n].clone().detach()
+                        print(x_n)
+                        optimizer = torch.optim.Adam([x_n.requires_grad_()], lr=0.1)
                         print("    adam set up")
                         for i in range(3):
                             optimizer.zero_grad()
-                            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                            # x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
                             # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
                             # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                             # x_prev_img = x_prev_img.astype(np.uint8)
@@ -724,13 +725,14 @@ class SyncDDIMSampler:
                             # x_prev_img = transform(x_prev_img).unsqueeze(0).to(device)
                             # prevn_embed = self.clip_model.model.encode_image(x_prev_img)
                             # new approach:
-                            x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                            prevn_embed = self.clip_model.forward(x_prev_decoded[:,n])
+                            x_n_decoded = self.model.decode_first_stage(x_n)
+                            x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
+                            prevn_embed = self.clip_model.forward(x_n_decoded)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             print("     loss: " + str(loss.item()))
                             loss.backward()
                             optimizer.step()
-                        #x_prev[:,n] = x_leaf
+                        print(x_n)
 
         x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
         x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
