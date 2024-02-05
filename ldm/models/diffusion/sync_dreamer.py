@@ -714,7 +714,7 @@ class SyncDDIMSampler:
                         print("    adam set up")
                         for i in range(3):
                             optimizer.zero_grad()
-                            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev) for ni in range(N)], 1)
+                            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
                             # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
                             # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
                             # x_prev_img = x_prev_img.astype(np.uint8)
