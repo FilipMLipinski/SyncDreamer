@@ -711,7 +711,7 @@ class SyncDDIMSampler:
                         print("   frame: " + str(n))
                         #x_leaf = (x_prev[:, n]).clone()#.detach()
                         x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        #print(x_n.grad)
+                        print(x_n.is_leaf)
                         optimizer = torch.optim.Adam([x_n], lr=0.1)
                         print("    adam set up")
                         for i in range(3):
