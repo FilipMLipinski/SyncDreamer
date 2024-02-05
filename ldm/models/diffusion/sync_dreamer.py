@@ -703,7 +703,7 @@ class SyncDDIMSampler:
                     # TODO: find a way to actually clip_emded
                     print("anchor image embedded")
                     x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                    reference_embed = self.clip_model.forward(x_prev_decoded)
+                    reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
 
 
                 for n in range(N):
