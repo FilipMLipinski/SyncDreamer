@@ -727,7 +727,7 @@ class SyncDDIMSampler:
                             x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
                             prevn_embed = self.clip_model.forward(x_prev_decoded[:,n])
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
-                            print("     loss: " + loss[0])
+                            print("     loss: " + loss.item())
                             loss.backward()
                             optimizer.step()
                         #x_prev[:,n] = x_leaf
