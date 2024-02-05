@@ -711,19 +711,20 @@ class SyncDDIMSampler:
                         print("   frame: " + str(n))
                         #x_leaf = (x_prev[:, n]).clone()#.detach()
                         x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        print(x_n.grad)
+                        #print(x_n.grad)
                         optimizer = torch.optim.Adam([x_n], lr=0.1)
                         print("    adam set up")
                         for i in range(3):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
-                            print(x_n_decoded.grad)
+                            #print(x_n_decoded.grad)
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
                             prevn_embed = self.clip_model.forward(x_n_decoded)
-                            print(prevn_embed.grad)
+                            #print(prevn_embed.grad)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             print("     loss: " + str(loss.item()))
                             loss.backward()
+                            print(x_n.grad)
                             optimizer.step()
                         x_prev[:,n] = x_n
 
