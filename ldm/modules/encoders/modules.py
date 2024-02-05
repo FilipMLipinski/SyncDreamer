@@ -378,7 +378,9 @@ class FrozenCLIPImageEmbedder(AbstractEncoder):
             # [""] denotes condition dropout for ucg
             device = self.model.visual.conv1.weight.device
             return torch.zeros(1, 768, device=device)
-        return self.model.encode_image(self.preprocess(x)).float()
+        x = self.model.encode_image(self.preprocess(x)).float()
+        print("after encoding with clip: " + str(x.is_leaf))
+        return x
 
     def encode(self, im):
         return self(im).unsqueeze(1)
