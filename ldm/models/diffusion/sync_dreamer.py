@@ -710,10 +710,9 @@ class SyncDDIMSampler:
                         print("   frame: " + str(n))
                         #x_leaf = (x_prev[:, n]).clone()#.detach()
                         x_n = x_prev[:,n].clone().detach()
-                        print(x_n)
                         optimizer = torch.optim.Adam([x_n.requires_grad_()], lr=0.1)
                         print("    adam set up")
-                        for i in range(3):
+                        for i in range(1):
                             optimizer.zero_grad()
                             # x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
                             # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
