@@ -368,10 +368,12 @@ class FrozenCLIPImageEmbedder(AbstractEncoder):
         x = (x + 1.) / 2.
         # renormalize according to clip
         x = kornia.enhance.normalize(x, self.mean, self.std)
+        print("after kornia: " + str(x.is_leaf))
         return x
 
     def forward(self, x):
         # x is assumed to be in range [-1,1]
+        print("in forward: " + str(x.is_leaf))
         if isinstance(x, list):
             # [""] denotes condition dropout for ucg
             device = self.model.visual.conv1.weight.device
