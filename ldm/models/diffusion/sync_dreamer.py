@@ -698,7 +698,7 @@ class SyncDDIMSampler:
                     x_prev_img = Image.fromarray(x_prev_img)
                     x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
 
-                    reference_embed = self.clip_model.encode_image(x_prev_img)
+                    reference_embed = self.clip_model.model.encode_image(x_prev_img)
                     
                     # TODO: find a way to actually clip_emded
                     print("anchor image embedded")
@@ -720,7 +720,7 @@ class SyncDDIMSampler:
                             x_prev_img = Image.fromarray(x_prev_img)
                             x_prev_img.save(f"output/test_denoise_impl/{index}_preclip_{n}.png")
                             x_prev_img = transform(x_prev_img).unsqueeze(0).to(device)
-                            prevn_embed = self.clip_model.encode_image(x_prev_img)
+                            prevn_embed = self.clip_model.model.encode_image(x_prev_img)
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             loss.backward()
                             optimizer.step()
