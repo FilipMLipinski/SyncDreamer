@@ -719,9 +719,9 @@ class SyncDDIMSampler:
                             print("     decode_first_stage in the graph: " + str(x_n_decoded.is_leaf))
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
-                            with torch.autograd.grad_mode():
+                            with torch.autograd.set_grad_enabled(True):
                                 # Wrap the CLIP encoding operation with torch.autograd.no_grad()
-                                with torch.autograd.no_grad():
+                                with torch.no_grad():
                                     prevn_embed = self.clip_model.forward(x_n_decoded)
                             
                             print("     clip model embed in the graph: " + str(prevn_embed.is_leaf))
