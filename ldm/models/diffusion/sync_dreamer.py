@@ -717,6 +717,7 @@ class SyncDDIMSampler:
                         for i in range(3):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
+                            print(x_n_decoded.grad)
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
                             prevn_embed = self.clip_model.forward(x_n_decoded)
                             print(prevn_embed.grad)
