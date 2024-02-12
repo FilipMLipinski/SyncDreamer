@@ -655,18 +655,14 @@ class SyncDDIMSampler:
                         print("   frame: " + str(n))
                         #x_leaf = (x_prev[:, n]).clone()#.detach()
                         x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        optimizer = torch.optim.Adam([x_n], lr=0.1)
+                        optimizer = torch.optim.Adam([x_n], lr=0.3)
                         print("    adam set up")
-                        for i in range(3):
+                        for i in range(10):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
                             print("     decode_first_stage in the graph: " + str(x_n.is_leaf))
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
-                            # TODO: clip seems to erase the computational graph.
-                            #with torch.autograd.set_grad_enabled(True):
-                                # Wrap the CLIP encoding operation with torch.autograd.no_grad()
-                                #with torch.no_grad():
                             prevn_embed = self.clip_model.forward(x_n_decoded)
                             
                             print("     clip model embed in the graph: " + str(x_n.is_leaf))
