@@ -568,7 +568,7 @@ class SyncDDIMSampler:
         self._make_schedule(ddim_num_steps, ddim_discretize, ddim_eta)
         self.eta = ddim_eta
 
-        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.clip_model = model.clip_image_encoder
 
         # PERFORMING A TEST IF THIS CLIP EVEN WORKS
