@@ -660,12 +660,12 @@ class SyncDDIMSampler:
                         for i in range(10):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
-                            print("     decode_first_stage in the graph: " + str(x_n.is_leaf))
+                            if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
                             prevn_embed = self.clip_model.forward(x_n_decoded)
+                            if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
                             
-                            print("     clip model embed in the graph: " + str(x_n.is_leaf))
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                             print("     loss: " + str(loss.item()))
                             loss.backward()
