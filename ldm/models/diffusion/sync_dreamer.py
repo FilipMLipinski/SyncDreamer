@@ -596,8 +596,8 @@ class SyncDDIMSampler:
 
         # Embed the images
         with torch.no_grad():
-            img1_embed = self.clip_model.encode_image(img1)
-            img2_embed = self.clip_model.encode_image(img2)
+            img1_embed = self.clip_model.forward(img1)
+            img2_embed = self.clip_model.forward(img2)
         
         #Make img2 more like img1
         optimizer = torch.optim.Adam([img2.requires_grad_()], lr=0.1)
@@ -605,7 +605,7 @@ class SyncDDIMSampler:
             optimizer.zero_grad()
             print("")
             print(str(img2.is_leaf))
-            img2_embed = self.clip_model.encode_image(img2)
+            img2_embed = self.clip_model.forward(img2)
             print(str(img2_embed.is_leaf))
             print("")
             loss = -torch.cosine_similarity(img1_embed, img2_embed).mean()
