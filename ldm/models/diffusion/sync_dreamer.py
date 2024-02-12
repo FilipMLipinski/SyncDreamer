@@ -628,22 +628,16 @@ class SyncDDIMSampler:
         if not is_step0:
             for b in range(B):
                 anchor = random.randint(0, N-1)
-                print("ANCHOR: " + str(anchor))
                 with torch.no_grad():
                     x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                    print("anchor image embedded")
                     x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
                     reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
 
-
                 for n in range(N):
                     if n!=anchor:
-                        print("   frame: " + str(n))
-                        #x_leaf = (x_prev[:, n]).clone()#.detach()
                         x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        optimizer = torch.optim.Adam([x_n], lr=0.3)
-                        print("    adam set up")
-                        for i in range(10):
+                        optimizer = torch.optim.Adam([x_n], lr=0.05)
+                        for i in range(3):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
                             if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
@@ -653,7 +647,6 @@ class SyncDDIMSampler:
                             if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
                             
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
-                            print("     loss: " + str(loss.item()))
                             loss.backward()
                             optimizer.step()
                         x_prev[:,n] = x_n
