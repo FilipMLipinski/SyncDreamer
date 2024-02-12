@@ -342,7 +342,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         }
         self.first_stage_scale_factor = 0.18215
         self.first_stage_model = instantiate_from_config(first_stage_config)
-        self.first_stage_model = disable_training_module(self.first_stage_model)
+        #self.first_stage_model = disable_training_module(self.first_stage_model)
 
     def _init_clip_image_encoder(self):
         self.clip_image_encoder = FrozenCLIPImageEmbedder(model=self.clip_image_encoder_path, device='cuda')
@@ -719,6 +719,7 @@ class SyncDDIMSampler:
                             print("     decode_first_stage in the graph: " + str(x_n_decoded.is_leaf))
                             x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
+                            # TODO: clip seems to erase the computational graph.
                             #with torch.autograd.set_grad_enabled(True):
                                 # Wrap the CLIP encoding operation with torch.autograd.no_grad()
                                 #with torch.no_grad():
