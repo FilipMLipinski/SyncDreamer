@@ -389,9 +389,10 @@ class SyncMultiviewDiffusion(pl.LightningModule):
                 return posterior.mode().detach() * self.first_stage_scale_factor
 
     def decode_first_stage(self, z):
-        with torch.no_grad():
-            z = 1. / self.first_stage_scale_factor * z
-            return self.first_stage_model.decode(z)
+        #with torch.no_grad():
+        # I do require grad
+        z = 1. / self.first_stage_scale_factor * z
+        return self.first_stage_model.decode(z)
 
     def prepare(self, batch):
         # encode target
