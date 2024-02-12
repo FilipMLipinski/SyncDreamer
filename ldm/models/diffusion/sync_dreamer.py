@@ -615,19 +615,12 @@ class SyncDDIMSampler:
         img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
         img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
-
-        plt.figure(figsize=(15, 5))
-        plt.subplot(1, 3, 1)
-        plt.imshow(img1)
-        plt.title('Reference Image')
-        plt.subplot(1, 3, 2)
-        plt.imshow(img2_original)
-        plt.title('Original Second Image')
-        plt.subplot(1, 3, 3)
-        plt.imshow(img2)
-        plt.title('Modified Second Image')
-        plt.savefig("fig.png")
-        plt.show()
+        im1 = Image.fromarray(img1)
+        im2_orig = Image.fromarray(img2_original)
+        im2 = Image.fromarray(img2)
+        im1.save("image_1")
+        im2_orig.save("image_2_orig")
+        im2.save("image_2_after")
         
         # # # TODO: actually check if this works. And then if it does, why doesn't it work on my arrays???
 
