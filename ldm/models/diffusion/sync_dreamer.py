@@ -615,6 +615,8 @@ class SyncDDIMSampler:
         img2_original = img2_original.squeeze().permute(1, 2, 0).cpu().detach().numpy()
         img2 = img2.squeeze().permute(1, 2, 0).cpu().detach().numpy()
 
+        print(im1.shape)
+
         im1 = Image.fromarray(img1)
         im2_orig = Image.fromarray(img2_original)
         im2 = Image.fromarray(img2)
