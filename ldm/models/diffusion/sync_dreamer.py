@@ -602,23 +602,24 @@ class SyncDDIMSampler:
         B,N,_,H,W = x_target_noisy.shape
 
         # apply noise
-        a_t = self.ddim_alphas[index].to(device).float().view(1,1,1,1,1)
-        a_prev = self.ddim_alphas_prev[index].to(device).float().view(1,1,1,1,1)
-        sqrt_one_minus_at = self.ddim_sqrt_one_minus_alphas[index].to(device).float().view(1,1,1,1,1)
-        sigma_t = self.ddim_sigmas[index].to(device).float().view(1,1,1,1,1)
+        with torch.no_grad():
+            a_t = self.ddim_alphas[index].to(device).float().view(1,1,1,1,1)
+            a_prev = self.ddim_alphas_prev[index].to(device).float().view(1,1,1,1,1)
+            sqrt_one_minus_at = self.ddim_sqrt_one_minus_alphas[index].to(device).float().view(1,1,1,1,1)
+            sigma_t = self.ddim_sigmas[index].to(device).float().view(1,1,1,1,1)
 
-        pred_x0 = (x_target_noisy - sqrt_one_minus_at * noise_pred) / a_t.sqrt()
-        dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
-        x_prev = a_prev.sqrt() * pred_x0 + dir_xt
+            pred_x0 = (x_target_noisy - sqrt_one_minus_at * noise_pred) / a_t.sqrt()
+            dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
+            x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-        x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-        x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-        x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-        x_prev_img = x_prev_img.astype(np.uint8)
-        output_fn = Path("output/test_denoise_impl")/ f'{index}_pre_clip.png'
-        Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
-        imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-        print("pre-clip saved")
+            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+            x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            x_prev_img = x_prev_img.astype(np.uint8)
+            output_fn = Path("output/test_denoise_impl")/ f'{index}_pre_clip.png'
+            Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
+            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            print("pre-clip saved")
 
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
@@ -630,22 +631,6 @@ class SyncDDIMSampler:
                 print("ANCHOR: " + str(anchor))
                 with torch.no_grad():
                     x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                    # x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                    # x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-                    # x_prev_img = x_prev_img.astype(np.uint8)
-
-                    # transform = Compose([
-                    #     Resize((224, 224)),
-                    #     ToTensor(),
-                    #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-                    # ])
-                    # x_prev_img = x_prev_img[b, anchor]
-                    # x_prev_img = Image.fromarray(x_prev_img)
-                    # x_prev_img = transform(x_prev_img).clone().unsqueeze(0).to(device)
-
-                    # reference_embed = self.clip_model.model.encode_image(x_prev_img)
-                    
-                    # TODO: find a way to actually clip_emded
                     print("anchor image embedded")
                     x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
                     reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
@@ -673,14 +658,15 @@ class SyncDDIMSampler:
                             optimizer.step()
                         x_prev[:,n] = x_n
 
-        x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-        x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-        x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-        x_prev_img = x_prev_img.astype(np.uint8)
-        output_fn = Path("output/test_denoise_impl")/ f'{index}_post_clip.png'
-        Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
-        imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-        print("post-clip saved")
+        with torch.no_grad():
+            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+            x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+            x_prev_img = x_prev_img.astype(np.uint8)
+            output_fn = Path("output/test_denoise_impl")/ f'{index}_post_clip.png'
+            Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
+            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+            print("post-clip saved")
 
         return x_prev
 
