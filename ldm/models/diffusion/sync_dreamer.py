@@ -619,12 +619,14 @@ class SyncDDIMSampler:
             output_fn = Path("output/test_denoise_impl")/ f'{index}_pre_clip.png'
             Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
             imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-            print("pre-clip saved")
 
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
         #     x_prev = x_prev + noise
         # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
+        lr_schedule = torch.linspace(0.001, 0.1, self.ddpm_num_timesteps)
+        curr_lr = lr_schedule[index]
+        #curr_lr = 0.05
         if not is_step0:
             for b in range(B):
                 anchor = random.randint(0, N-1)
@@ -636,7 +638,7 @@ class SyncDDIMSampler:
                 for n in range(N):
                     if n!=anchor:
                         x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        optimizer = torch.optim.Adam([x_n], lr=0.05)
+                        optimizer = torch.optim.Adam([x_n], lr=curr_lr)
                         for i in range(3):
                             optimizer.zero_grad()
                             x_n_decoded = self.model.decode_first_stage(x_n)
@@ -659,7 +661,6 @@ class SyncDDIMSampler:
             output_fn = Path("output/test_denoise_impl")/ f'{index}_post_clip.png'
             Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
             imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-            print("post-clip saved")
 
         return x_prev
 
