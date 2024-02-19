@@ -495,7 +495,8 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         x_sample, inter = sampler.sample(input_info, clip_embed, unconditional_scale=cfg_scale, log_every_t=inter_interval, batch_view_num=batch_view_num)
 
         N = x_sample.shape[1]
-        x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
+        with torch
+            x_sample = torch.stack([self.decode_first_stage(x_sample[:, ni]) for ni in range(N)], 1)
         # When I commented out the above the result was BROKEN, so thats a great start. The question is
         # why if that line is added in the sampler.sample function, it does not create nice images.
 
