@@ -615,21 +615,12 @@ class SyncDDIMSampler:
             dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-            x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            x_prev_img = x_prev_img.astype(np.uint8)
-            output_fn = Path("output/test_denoise_impl")/ f'{index}_pre_clip.png'
-            Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
-
         # if not is_step0:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
         #     x_prev = x_prev + noise
         # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
         lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
         curr_lr = lr_schedule[index]
-        #curr_lr = 0.05
         if not is_step0:
             for b in range(B):
                 anchor = random.randint(0, N-1)
@@ -661,8 +652,10 @@ class SyncDDIMSampler:
             x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
             x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
             x_prev_img = x_prev_img.astype(np.uint8)
-            output_fn = Path("output/test_denoise_impl")/ f'{index}_post_clip.png'
-            Path("output/test_denoise_impl").mkdir(exist_ok=True, parents=True)
+            # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
+            target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
+            output_fn = Path(target_folder)/ f'frame_{index}.png'
+            Path(target_folder).mkdir(exist_ok=True, parents=True)
             imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
         return x_prev
