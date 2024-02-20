@@ -562,7 +562,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         return [opt], scheduler
 
 class SyncDDIMSampler:
-    def __init__(self, model: SyncMultiviewDiffusion, ddim_num_steps, ddim_discretize="uniform", ddim_eta=1.0, latent_size=32):
+    def __init__(self, model: SyncMultiviewDiffusion, ddim_num_steps, lr_start=0.01, lr_end=0.1, ddim_discretize="uniform", ddim_eta=1.0, latent_size=32):
         super().__init__()
         self.model = model
         self.ddpm_num_timesteps = model.num_timesteps
@@ -572,6 +572,8 @@ class SyncDDIMSampler:
 
         #device = "cuda" if torch.cuda.is_available() else "cpu"
         self.clip_model = model.clip_image_encoder
+        self.lr_start = lr_start
+        self.lr_end=lr_end
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
@@ -625,7 +627,7 @@ class SyncDDIMSampler:
         #     noise = sigma_t * torch.randn_like(x_target_noisy)
         #     x_prev = x_prev + noise
         # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
-        lr_schedule = torch.linspace(0.01, 0.1, self.ddpm_num_timesteps)
+        lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
         curr_lr = lr_schedule[index]
         #curr_lr = 0.05
         if not is_step0:
