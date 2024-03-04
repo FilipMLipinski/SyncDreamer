@@ -646,17 +646,17 @@ class SyncDDIMSampler:
                             loss.backward()
                             optimizer.step()
                         x_prev[:,n] = x_n
-
-        with torch.no_grad():
-            x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-            x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-            x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-            x_prev_img = x_prev_img.astype(np.uint8)
-            # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
-            target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
-            output_fn = Path(target_folder)/ f'frame_{index}.png'
-            Path(target_folder).mkdir(exist_ok=True, parents=True)
-            imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        else:
+            with torch.no_grad():
+                x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                x_prev_img = x_prev_img.astype(np.uint8)
+                # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
+                target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
+                output_fn = Path(target_folder)/ f'frame_{index}.png'
+                Path(target_folder).mkdir(exist_ok=True, parents=True)
+                imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
         return x_prev
 
