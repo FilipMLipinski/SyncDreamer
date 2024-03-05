@@ -615,48 +615,51 @@ class SyncDDIMSampler:
             dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt
 
-        # if not is_step0:
-        #     noise = sigma_t * torch.randn_like(x_target_noisy)
-        #     x_prev = x_prev + noise
+        if self.lr_end<0.000001:
+            # basically = 0, then revert to the normal way of adding noise
+            if not is_step0:
+                noise = sigma_t * torch.randn_like(x_target_noisy)
+                x_prev = x_prev + noise
         # my way of 'adding noise' using clip embedding. A noise that directs the image to the clip embedding of the reference.
-        lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
-        curr_lr = lr_schedule[index]
-        if not is_step0:
-            for b in range(B):
-                anchor = random.randint(0, N-1)
+        else:
+            lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
+            curr_lr = lr_schedule[index]
+            if not is_step0:
+                for b in range(B):
+                    anchor = random.randint(0, N-1)
+                    with torch.no_grad():
+                        x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
+                        x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
+                        reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
+
+                    for n in range(N):
+                        if n!=anchor:
+                            x_n = x_prev[:,n].clone().detach().requires_grad_()
+                            optimizer = torch.optim.Adam([x_n], lr=curr_lr)
+                            for i in range(3):
+                                optimizer.zero_grad()
+                                x_n_decoded = self.model.decode_first_stage(x_n)
+                                if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
+                                x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
+
+                                prevn_embed = self.clip_model.forward(x_n_decoded)
+                                if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
+                                
+                                loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
+                                loss.backward()
+                                optimizer.step()
+                            x_prev[:,n] = x_n
+            else:
                 with torch.no_grad():
                     x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                    x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                    reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
-
-                for n in range(N):
-                    if n!=anchor:
-                        x_n = x_prev[:,n].clone().detach().requires_grad_()
-                        optimizer = torch.optim.Adam([x_n], lr=curr_lr)
-                        for i in range(3):
-                            optimizer.zero_grad()
-                            x_n_decoded = self.model.decode_first_stage(x_n)
-                            if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
-                            x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
-
-                            prevn_embed = self.clip_model.forward(x_n_decoded)
-                            if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
-                            
-                            loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
-                            loss.backward()
-                            optimizer.step()
-                        x_prev[:,n] = x_n
-        else:
-            with torch.no_grad():
-                x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
-                x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
-                x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
-                x_prev_img = x_prev_img.astype(np.uint8)
-                # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
-                target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
-                output_fn = Path(target_folder)/ f'frame_{index}.png'
-                Path(target_folder).mkdir(exist_ok=True, parents=True)
-                imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+                    x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
+                    x_prev_img = x_prev_img.permute(0,1,3,4,2).cpu().numpy() * 255
+                    x_prev_img = x_prev_img.astype(np.uint8)
+                    # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
+                    target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
+                    output_fn = Path(target_folder)/ f'frame_{index}.png'
+                    Path(target_folder).mkdir(exist_ok=True, parents=True)
+                    imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
 
         return x_prev
 
