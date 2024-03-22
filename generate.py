@@ -37,6 +37,7 @@ def main():
     parser.add_argument('--sample_steps', type=int, default=50)
     parser.add_argument('--lr_start', type=float, default=0.01)
     parser.add_argument('--lr_end', type=float, default=0.1)
+    parser.add_argument('--start_step', type=int, default=0)
     flags = parser.parse_args()
 
     torch.random.manual_seed(flags.seed)
@@ -53,7 +54,7 @@ def main():
         data[k] = torch.repeat_interleave(data[k], flags.sample_num, dim=0)
 
     if flags.sampler=='ddim':
-        sampler = SyncDDIMSampler(model, flags.sample_steps, lr_start=flags.lr_start, lr_end=flags.lr_end)
+        sampler = SyncDDIMSampler(model, flags.sample_steps, lr_start=flags.lr_start, lr_end=flags.lr_end, start_step=flags.start_step)
         # print("nr of timesteps in generate.py sampler: " + str(len(sampler.ddim_timesteps)))
     else:
         raise NotImplementedError
