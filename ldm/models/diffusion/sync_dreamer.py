@@ -615,7 +615,7 @@ class SyncDDIMSampler:
             pred_x0 = (x_target_noisy - sqrt_one_minus_at * noise_pred) / a_t.sqrt()
             dir_xt = torch.clamp(1. - a_prev - sigma_t**2, min=1e-7).sqrt() * noise_pred
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt
-  
+        print("current index: " + index)
         if not is_step0:
             if self.lr_end<0.000001 or index<self.start_step:
                 noise = sigma_t * torch.randn_like(x_target_noisy)
