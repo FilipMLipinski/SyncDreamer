@@ -623,6 +623,7 @@ class SyncDDIMSampler:
         output_fn = Path(target_folder)/ f'frame_{index}_pre-clip.png'
         Path(target_folder).mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        print("pre-clip saved")
         if not is_step0:
             if self.lr_end<0.000001 or index>self.start_step:
                 noise = sigma_t * torch.randn_like(x_target_noisy)
@@ -676,6 +677,7 @@ class SyncDDIMSampler:
         output_fn = Path(target_folder)/ f'frame_{index}_post-clip.png'
         Path(target_folder).mkdir(exist_ok=True, parents=True)
         imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
+        print("post-clip saved")
         return x_prev
 
     # @torch.no_grad()
