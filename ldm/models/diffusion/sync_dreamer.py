@@ -644,7 +644,7 @@ class SyncDDIMSampler:
                             if n!=anchor:
                                 x_n = x_prev[:,n].clone().detach().requires_grad_()
                                 optimizer = torch.optim.Adam([x_n], lr=curr_lr)
-                                for i in range(1):
+                                for i in range(3):
                                     optimizer.zero_grad()
                                     x_n_decoded = self.model.decode_first_stage(x_n)
                                     if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
