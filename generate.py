@@ -40,6 +40,7 @@ def main():
     parser.add_argument('--start_step', type=int, default=0)
     parser.add_argument('--clip_optim', type=bool, default=False)
     flags = parser.parse_args()
+    print(flags.output[7:])
 
     torch.random.manual_seed(flags.seed)
     np.random.seed(flags.seed)
@@ -70,9 +71,9 @@ def main():
 
     for bi in range(B):
         if(flags.clip_optim):
-            output_fn = Path(flags.output)/ f'{bi}_clip.png'
+            output_fn = Path(flags.output)/ f'{flags.output[7:]}_clip.png'
         else:
-            output_fn = Path(flags.output)/ f'{bi}.png'
+            output_fn = Path(flags.output)/ f'{flags.output[7:]}.png'
         imsave(output_fn, np.concatenate([x_sample[bi,ni] for ni in range(N)], 1))
 
     # model.hacky_sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
