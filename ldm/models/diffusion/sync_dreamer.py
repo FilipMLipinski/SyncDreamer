@@ -665,7 +665,7 @@ class SyncDDIMSampler:
                 x_prev_img = x_prev_img.astype(np.uint8)
                 # target folder is a string of lr_start _ lr_end, where '.' is replaced with '_'
                 target_folder = f"output/lr_{str(self.lr_start).replace('.','_')}__{str(self.lr_end).replace('.','_')}"
-                output_fn = Path(target_folder)/ f'frame_{index}.png'
+                output_fn = Path(target_folder)/ f'start_at_{str(self.start_step)}.png'
                 Path(target_folder).mkdir(exist_ok=True, parents=True)
                 imsave(output_fn, np.concatenate([x_prev_img[0, ni] for ni in range(N)], 1))
         # with torch.no_grad():
