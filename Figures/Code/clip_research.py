@@ -25,12 +25,14 @@ pig1 = Image.open(path +"pig1.png").convert('RGB')
 pig2 = Image.open(path +"pig2.png").convert('RGB')
 bunny1 = Image.open(path +"bunny1.png").convert('RGB')
 bunny2 = Image.open(path +"bunny2.png").convert('RGB')
+realbunny1 = Image.open(path +"realbunny1.png").convert('RGB')
 
 # Preprocess the images
 pig1 = transform(pig1).unsqueeze(0).to(device)
 pig2 = transform(pig2).unsqueeze(0).to(device)
 bunny1 = transform(bunny1).unsqueeze(0).to(device)
 bunny2 = transform(bunny2).unsqueeze(0).to(device)
+realbunny1 = transform(realbunny1).unsqueeze(0).to(device)
 
 # Embed the images
 with torch.no_grad():
@@ -38,6 +40,7 @@ with torch.no_grad():
     pig2_embed = model.encode_image(pig2)
     bunny1_embed = model.encode_image(bunny1)
     bunny2_embed = model.encode_image(bunny2)
+    realbunny1_embed = model.encode_image(realbunny1)
 
 cosi = torch.nn.CosineSimilarity(dim=0)
 print(cosi(pig1_embed[0,:], pig2_embed[0,:]))
@@ -46,6 +49,8 @@ print(cosi(pig1_embed[0,:], bunny2_embed[0,:]))
 print(cosi(pig2_embed[0,:], bunny1_embed[0,:]))
 print(cosi(pig2_embed[0,:], bunny2_embed[0,:]))
 print(cosi(bunny1_embed[0,:], bunny2_embed[0,:]))
+
+print(cosi(bunny2_embed[0,:], realbunny1_embed[0,:]))
 
 # Output:
 # tensor(0.9321, device='cuda:0', dtype=torch.float16)
