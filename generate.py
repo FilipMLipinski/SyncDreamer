@@ -38,6 +38,7 @@ def main():
     parser.add_argument('--lr_start', type=float, default=0.01)
     parser.add_argument('--lr_end', type=float, default=0.1)
     parser.add_argument('--start_step', type=int, default=0)
+    parser.add_argument('--clip_optim', type=bool, default=False)
     flags = parser.parse_args()
 
     torch.random.manual_seed(flags.seed)
@@ -68,7 +69,10 @@ def main():
     # use this to convert x_noisy to image format
 
     for bi in range(B):
-        output_fn = Path(flags.output)/ f'{bi}.png'
+        if(flags.clip_optim):
+            output_fn = Path(flags.output)/ f'{bi}_clip.png'
+        else:
+            output_fn = Path(flags.output)/ f'{bi}.png'
         imsave(output_fn, np.concatenate([x_sample[bi,ni] for ni in range(N)], 1))
 
     # model.hacky_sample(sampler, data, flags.cfg_scale, flags.batch_view_num)
