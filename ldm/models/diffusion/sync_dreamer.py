@@ -608,7 +608,8 @@ class SyncDDIMSampler:
                 if(self.optim_method=="clip"):
                     reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
                 elif(self.optim_method=="dino"):
-                    reference_embed = self.dino_model(self.dino_transform(x_prev_decoded[:, anchor]))
+                    #reference_embed = self.dino_model(self.dino_transform(x_prev_decoded[:, anchor]))
+                    reference_embed = self.dino_model.get_intermediate_layers(self.dino_transform(x_prev_decoded[:, anchor]), [0], reshape=True)[0][0]
 
             for n in range(N):
                 if n!=anchor:
@@ -617,16 +618,16 @@ class SyncDDIMSampler:
                     for i in range(3):
                         optimizer.zero_grad()
                         x_n_decoded = self.model.decode_first_stage(x_n)
-                        if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
                         x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
                         if(self.optim_method=="clip"):
                             prevn_embed = self.clip_model.forward(x_n_decoded)
+                            loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                         elif(self.optim_method=="dino"):
-                            prevn_embed = self.dino_model(self.dino_transform(x_n_decoded))
-                        if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
+                            #prevn_embed = self.dino_model(self.dino_transform(x_n_decoded))
+                            reference_embed = self.dino_model.get_intermediate_layers(self.dino_transform(x_n_decoded), [0], reshape=True)[0][0]
+                            loss = torch.dist(reference_embed, prevn_embed, p=2)
                         
-                        loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                         loss.backward()
                         optimizer.step()
                     x_prev[:,n] = x_n
