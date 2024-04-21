@@ -625,7 +625,7 @@ class SyncDDIMSampler:
                             loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
                         elif(self.optim_method=="dino"):
                             #prevn_embed = self.dino_model(self.dino_transform(x_n_decoded))
-                            reference_embed = self.dino_model.get_intermediate_layers(self.dino_transform(x_n_decoded), [0], reshape=True)[0][0]
+                            prevn_embed = self.dino_model.get_intermediate_layers(self.dino_transform(x_n_decoded), [0], reshape=True)[0][0]
                             loss = torch.dist(reference_embed, prevn_embed, p=2)
                         
                         loss.backward()
