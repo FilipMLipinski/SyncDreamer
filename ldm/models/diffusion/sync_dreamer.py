@@ -579,6 +579,7 @@ class SyncDDIMSampler:
 
         if(self.optim_method == "dino"):
             self.dino_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
+            self.dino_transform = Compose([Resize(224,224)])
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
@@ -607,7 +608,7 @@ class SyncDDIMSampler:
                 if(self.optim_method=="clip"):
                     reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
                 elif(self.optim_method=="dino"):
-                    reference_embed = self.dino_model(x_prev_decoded[:, anchor])
+                    reference_embed = self.dino_model(self.dino_transform(x_prev_decoded[:, anchor]))
 
             for n in range(N):
                 if n!=anchor:
@@ -622,7 +623,7 @@ class SyncDDIMSampler:
                         if(self.optim_method=="clip"):
                             prevn_embed = self.clip_model.forward(x_n_decoded)
                         elif(self.optim_method=="dino"):
-                            prevn_embed = self.dino_model(x_n_decoded)
+                            prevn_embed = self.dino_model(self.dino_transform(x_n_decoded))
                         if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
                         
                         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
