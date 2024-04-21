@@ -597,11 +597,6 @@ class SyncDDIMSampler:
         self.ddim_sqrt_one_minus_alphas = torch.sqrt(1. - self.ddim_alphas).float()
 
     def optim(self, B, N, index, x_prev):
-        if(self.optim_method=="clip"):
-            optim_model = self.clip_model
-        elif(self.optim_method=="dino"):
-            optim_model = self.dino_model
-
         lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
         curr_lr = lr_schedule[index]
         for b in range(B):
@@ -609,7 +604,10 @@ class SyncDDIMSampler:
             with torch.no_grad():
                 x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
                 x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                reference_embed = optim_model.forward(x_prev_decoded[:, anchor])
+                if(self.optim_method=="clip"):
+                    reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
+                elif(self.optim_method=="dino"):
+                    reference_embed = self.dino_model(x_prev_decoded[:, anchor])
 
             for n in range(N):
                 if n!=anchor:
@@ -621,7 +619,10 @@ class SyncDDIMSampler:
                         if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
                         x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
-                        prevn_embed = optim_model.forward(x_n_decoded)
+                        if(self.optim_method=="clip"):
+                            prevn_embed = self.clip_model.forward(x_n_decoded)
+                        elif(self.optim_method=="dino"):
+                            prevn_embed = self.dino_model(x_n_decoded)
                         if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
                         
                         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
