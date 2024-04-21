@@ -56,7 +56,11 @@ def main():
         data[k] = torch.repeat_interleave(data[k], flags.sample_num, dim=0)
 
     if flags.sampler=='ddim':
-        sampler = SyncDDIMSampler(model, flags.sample_steps, lr_start=flags.lr_start, lr_end=flags.lr_end, start_step=flags.start_step)
+        sampler = SyncDDIMSampler(model, flags.sample_steps, 
+                                  lr_start=flags.lr_start, 
+                                  lr_end=flags.lr_end, 
+                                  start_step=flags.start_step,
+                                  optim_method = flags.optim_method)
         # print("nr of timesteps in generate.py sampler: " + str(len(sampler.ddim_timesteps)))
     else:
         raise NotImplementedError

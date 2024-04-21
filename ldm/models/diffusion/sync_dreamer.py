@@ -562,7 +562,7 @@ class SyncMultiviewDiffusion(pl.LightningModule):
         return [opt], scheduler
 
 class SyncDDIMSampler:
-    def __init__(self, model: SyncMultiviewDiffusion, ddim_num_steps, lr_start=0.01, lr_end=0.1, start_step=0, ddim_discretize="uniform", ddim_eta=1.0, latent_size=32):
+    def __init__(self, model: SyncMultiviewDiffusion, ddim_num_steps, lr_start=0.01, lr_end=0.1, start_step=0, optim_method="", ddim_discretize="uniform", ddim_eta=1.0, latent_size=32):
         super().__init__()
         self.model = model
         self.ddpm_num_timesteps = model.num_timesteps
@@ -575,6 +575,9 @@ class SyncDDIMSampler:
         self.lr_start = lr_start
         self.lr_end=lr_end
         self.start_step = start_step
+
+        if(self.optim_method == "dino"):
+            self.dino_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
@@ -592,7 +595,12 @@ class SyncDDIMSampler:
         self.ddim_alphas_prev = self.ddim_alphas_prev.float()
         self.ddim_sqrt_one_minus_alphas = torch.sqrt(1. - self.ddim_alphas).float()
 
-    def clip_optim(self, B, N, index, x_prev):
+    def optim(self, B, N, index, x_prev):
+        if(self.optim_method=="clip"):
+            optim_model = self.clip_model
+        elif(self.optim_method=="dino"):
+            optim_model = self.dino_model
+
         lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
         curr_lr = lr_schedule[index]
         for b in range(B):
@@ -600,7 +608,7 @@ class SyncDDIMSampler:
             with torch.no_grad():
                 x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
                 x_prev_decoded = torch.clamp(x_prev_decoded, max=1.0, min=-1.0)
-                reference_embed = self.clip_model.forward(x_prev_decoded[:, anchor])
+                reference_embed = optim_model.forward(x_prev_decoded[:, anchor])
 
             for n in range(N):
                 if n!=anchor:
@@ -612,7 +620,7 @@ class SyncDDIMSampler:
                         if(not x_n_decoded.requires_grad): print("detached! after self.model.decode_first_stage")
                         x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
 
-                        prevn_embed = self.clip_model.forward(x_n_decoded)
+                        prevn_embed = optim_model.forward(x_n_decoded)
                         if(not prevn_embed.requires_grad): print("detached! after self.clip_model.forward(x_n_decoded)")
                         
                         loss = -torch.cosine_similarity(reference_embed, prevn_embed).mean()
@@ -621,7 +629,7 @@ class SyncDDIMSampler:
                     x_prev[:,n] = x_n
         return x_prev
     
-    def save_frames(self, x_prev):
+    def save_frames(self, x_prev, N):
         with torch.no_grad():
             x_prev_decoded = torch.stack([self.model.decode_first_stage(x_prev[:, ni]) for ni in range(N)], 1)
             x_prev_img = (torch.clamp(x_prev_decoded,max=1.0,min=-1.0) + 1) * 0.5
@@ -656,13 +664,13 @@ class SyncDDIMSampler:
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt
         
         if not is_step0:
-            if self.lr_end<0.000001 or index>self.start_step:
+            if self.optim_method=="" or index>self.start_step:
                 noise = sigma_t * torch.randn_like(x_target_noisy)
                 x_prev = x_prev + noise
             else:
-                x_prev = self.clip_optim(B, N, index, x_prev)
+                x_prev = self.optim(B, N, index, x_prev)
         else:
-            self.save_frames(x_prev)
+            self.save_frames(x_prev, N)
         return x_prev
 
     # @torch.no_grad()
