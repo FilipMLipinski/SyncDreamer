@@ -570,7 +570,7 @@ class SyncDDIMSampler:
         self._make_schedule(ddim_num_steps, ddim_discretize, ddim_eta)
         self.eta = ddim_eta
 
-        #device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = self.model.device
         self.clip_model = model.clip_image_encoder
         self.lr_start = lr_start
         self.lr_end=lr_end
@@ -578,7 +578,7 @@ class SyncDDIMSampler:
         self.optim_method = optim_method
 
         if(self.optim_method == "dino"):
-            self.dino_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
+            self.dino_model = (torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')).to(device)
             self.dino_transform = Compose([Resize((224,224))])
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
