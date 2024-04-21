@@ -600,6 +600,7 @@ class SyncDDIMSampler:
     def optim(self, B, N, index, x_prev):
         lr_schedule = torch.linspace(self.lr_start, self.lr_end, self.ddpm_num_timesteps)
         curr_lr = lr_schedule[index]
+        iterations = 3 if self.optim_method=="clip" else 1
         for b in range(B):
             anchor = random.randint(0, N-1)
             with torch.no_grad():
@@ -615,7 +616,7 @@ class SyncDDIMSampler:
                 if n!=anchor:
                     x_n = x_prev[:,n].clone().detach().requires_grad_()
                     optimizer = torch.optim.Adam([x_n], lr=curr_lr)
-                    for i in range(3):
+                    for i in range(iterations):
                         optimizer.zero_grad()
                         x_n_decoded = self.model.decode_first_stage(x_n)
                         x_n_decoded = torch.clamp(x_n_decoded, max=1.0, min=-1.0)
