@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--sample_steps', type=int, default=50)
     parser.add_argument('--lr_start', type=float, default=0.01)
     parser.add_argument('--lr_end', type=float, default=0.1)
-    parser.add_argument('--start_step', type=int, default=0)
+    parser.add_argument('--start_step', type=int, default=51)
     parser.add_argument('--optim_method', type=str, default="") # either clip or dino
     flags = parser.parse_args()
     print(flags.output[7:])
