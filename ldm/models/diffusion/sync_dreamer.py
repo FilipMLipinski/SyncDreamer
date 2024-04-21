@@ -579,7 +579,7 @@ class SyncDDIMSampler:
 
         if(self.optim_method == "dino"):
             self.dino_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
-            self.dino_transform = Compose([Resize(224,224)])
+            self.dino_transform = Compose([Resize((224,224))])
 
     def _make_schedule(self,  ddim_num_steps, ddim_discretize="uniform", ddim_eta=0., verbose=True):
         self.ddim_timesteps = make_ddim_timesteps(ddim_discr_method=ddim_discretize, num_ddim_timesteps=ddim_num_steps, num_ddpm_timesteps=self.ddpm_num_timesteps, verbose=verbose) # DT
