@@ -575,6 +575,7 @@ class SyncDDIMSampler:
         self.lr_start = lr_start
         self.lr_end=lr_end
         self.start_step = start_step
+        self.optim_method = optim_method
 
         if(self.optim_method == "dino"):
             self.dino_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
